@@ -1,19 +1,17 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
+import { useDeviceId } from "../../Customhooks/useDeviceId";
 import { TextInput, Select, Button } from "@mantine/core";
 import Notification from "../GlobalNotification/Notification";
-
-// ========================================
-// OnboardingForm Component
-// Reusable form for clinic/lab onboarding
-// ========================================
+import apis from "../../APis/Api";
+import { useNavigate } from "react-router-dom";
+import { useDeviceType } from "../../Customhooks/useDeviceType";
 
 export interface OnboardingFormData {
   fullName: string;
   phoneNumber: string;
   emailAddress: string;
   role: string;
-  // store country code so OTP can display the exact number
   countryCode?: string;
 }
 
@@ -32,12 +30,14 @@ const OnboardingForm: React.FC<OnboardingFormProps> = ({ onSubmit }) => {
     countryCode: "+91",
   });
   const navigate = useNavigate();
+  const deviceId = useDeviceId();
+  const deviceType = useDeviceType();
+  const [loading, setLoading] = useState(false);
   const [notif, setNotif] = useState<{
     open: boolean;
     data: { success: boolean; message: string };
   }>({ open: false, data: { success: true, message: "" } });
 
-  // If navigated back from OTP with state (edit), prefill the phone fields
   useEffect(() => {
     const state = (location.state || {}) as {
       phoneNumber?: string;
@@ -52,7 +52,7 @@ const OnboardingForm: React.FC<OnboardingFormProps> = ({ onSubmit }) => {
     }
   }, [location.state]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // Basic validation
     if (
@@ -73,16 +73,49 @@ const OnboardingForm: React.FC<OnboardingFormProps> = ({ onSubmit }) => {
     if (onSubmit) {
       onSubmit(formData);
     }
-    // TODO: Optionally send initial onboarding data to API before OTP
-    // Example: fetch('/api/start-onboarding', { method: 'POST', body: JSON.stringify(formData) })
-    // After submitting the basic onboarding form, navigate to the OTP step
-    // and include phone info in route state so OTP can display the exact number.
-    navigate("otp", {
-      state: {
-        phoneNumber: formData.phoneNumber,
-        countryCode: formData.countryCode,
-      },
-    });
+    // Prepare trimmed payload and log it (for debugging / integration)
+    const payload = {
+      name: formData.fullName.trim(),
+      mobile: formData.countryCode + formData.phoneNumber.trim(),
+      email: formData.emailAddress.trim(),
+      role: formData.role.trim().toLowerCase(),
+      frontend_type: "browser",
+      device_type: deviceType,
+      device_id: deviceId || "",
+    };
+
+    console.log("Creating profile payload:", payload);
+    setLoading(true);
+    try {
+      const response = await apis.RegisterOrganization(payload);
+      console.log("Organization Registration Response:", response);
+      // Use API response to show notification
+      const success = response?.success ?? false;
+      const message = response?.message;
+
+      setNotif({ open: true, data: { success, message } });
+      if (success) {
+        setTimeout(() => {
+          navigate("otp", {
+            state: {
+              phoneNumber: payload.mobile,
+              countryCode: formData.countryCode,
+              otp_id: response.data.otp_id,
+              request_id: response.data.request_id,
+              resendPayload: payload,
+            },
+          });
+        }, 1500);
+      }
+    } catch (err) {
+      console.error(err);
+      let message = "Network error occurred";
+      if (err instanceof Error) message = err.message;
+      else if (typeof err === "string") message = err;
+      setNotif({ open: true, data: { success: false, message } });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -207,7 +240,7 @@ const OnboardingForm: React.FC<OnboardingFormProps> = ({ onSubmit }) => {
           </label>
           <Select
             placeholder="Select role"
-            data={["Owner", "Staff", "Manager", "Doctor"]}
+            data={["Staff", "Owner"]}
             value={formData.role}
             onChange={(value) =>
               setFormData({ ...formData, role: value || "" })
@@ -229,6 +262,7 @@ const OnboardingForm: React.FC<OnboardingFormProps> = ({ onSubmit }) => {
           type="submit"
           size="md"
           className="mt-2"
+          disabled={loading}
           styles={{
             root: {
               backgroundColor: "#2563eb",
@@ -238,7 +272,7 @@ const OnboardingForm: React.FC<OnboardingFormProps> = ({ onSubmit }) => {
             },
           }}
         >
-          Get Started - Create Profile
+          {loading ? "Creating..." : "Get Started - Create Profile"}
         </Button>
       </form>
     </div>

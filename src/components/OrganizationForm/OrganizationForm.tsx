@@ -4,14 +4,23 @@ import {
   Checkbox,
   Button,
   Group,
-  ActionIcon,
   Paper,
+  ActionIcon,
+  Modal,
 } from "@mantine/core";
 import Notification from "../GlobalNotification/Notification";
-import { IconPlus, IconTrash } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
+import { IconMapPin } from "@tabler/icons-react";
+import SelectableMap from "../../MapSelector/SelectableMap";
+import apis from "../../APis/Api";
 
-type Address = { addressLine: string; city?: string; pincode?: string };
+type Address = {
+  address: string;
+  city?: string;
+  postal_code?: string;
+  lat?: string;
+  lng?: string;
+};
 
 const OrganizationForm: React.FC = () => {
   const [organizationName, setOrganizationName] = useState("");
@@ -20,31 +29,39 @@ const OrganizationForm: React.FC = () => {
     diagnosis: boolean;
     clinic: boolean;
   }>({ diagnosis: false, clinic: false });
-  const [addresses, setAddresses] = useState<Address[]>([]);
+  // Always present a single address by default
+  const [addresses, setAddresses] = useState<Address[]>([
+    { address: "", city: "", postal_code: "", lat: "", lng: "" },
+  ]);
   const [primaryContact, setPrimaryContact] = useState("");
   const [secondaryContact, setSecondaryContact] = useState("");
   const [branchEmail, setBranchEmail] = useState("");
   const navigate = useNavigate();
 
-  const addAddress = () => {
-    // allow only one address — if none exists, add one
-    setAddresses((s) =>
-      s.length === 0 ? [{ addressLine: "", city: "", pincode: "" }] : s
-    );
-  };
-  const removeAddress = (idx: number) =>
-    setAddresses((s) => s.filter((_, i) => i !== idx));
   const updateAddress = (idx: number, field: keyof Address, val: string) =>
     setAddresses((s) =>
       s.map((a, i) => (i === idx ? { ...a, [field]: val } : a))
     );
 
-  const handleSubmit = (e?: React.FormEvent) => {
+  // modal state for map selector
+  const [mapOpen, setMapOpen] = useState(false);
+
+  const handleMapLocationSelect = (lat: number, lng: number) => {
+    updateAddress(0, "lat", String(lat));
+    updateAddress(0, "lng", String(lng));
+    setNotif({
+      open: true,
+      data: { success: true, message: "Location selected from map." },
+    });
+    setMapOpen(false);
+  };
+
+  const handleSubmit = async(e?: React.FormEvent) => {
     e?.preventDefault();
     // Basic validation
     if (
       !organizationName.trim() ||
-      addresses.length === 0 ||
+      !addresses[0]?.address?.trim() ||
       !primaryContact.trim()
     ) {
       setNotif({
@@ -56,20 +73,41 @@ const OrganizationForm: React.FC = () => {
       });
       return;
     }
-    // TODO: Call API to submit organization data
-    // Example: fetch('/api/create-organization', { method: 'POST', body: JSON.stringify(payload) })
-    // If success, navigate to dashboard or home
-    const payload = {
-      organizationName,
-      centerName,
-      branchType,
-      addresses,
-      primaryContact,
-      secondaryContact,
-      branchEmail,
+    // Build API payload in required snake_case shape
+    const addr = addresses[0] || {
+      address: "",
+      postal_code: "",
+      lat: "",
+      lng: "",
     };
-    console.log("Organization payload:", payload);
-    navigate("/success");
+    const payload = {
+      organization_name: organizationName.trim(),
+      center_name: centerName.trim(),
+      is_clinic: branchType.clinic ? 1 : 0,
+      is_diagnostic: branchType.diagnosis ? 1 : 0,
+      primary_contact: primaryContact.trim(),
+      secondary_contact: secondaryContact.trim() || undefined,
+      address: {
+        address: (addr.address).trim(),
+        lat: (addr.lat || "").toString(),
+        lng: (addr.lng || "").toString(),
+        postalcode: (addr.postal_code || "").toString(),
+      },
+      branch_email: branchEmail.trim() || undefined,
+    };
+
+    const response = await apis.AddOrganization(payload);
+    console.log("Organization API payload:", response);
+
+    // optionally show a notification and navigate
+    setNotif({
+      open: true,
+      data: {
+        success: response.success,
+        message: response.message
+      },
+    });
+    // navigate("/success");
   };
 
   const [notif, setNotif] = useState<{
@@ -97,24 +135,25 @@ const OrganizationForm: React.FC = () => {
         </p>
       </div>
       <div className="space-y-3">
-        <div>
-          <label className="text-sm font-medium">
-            Organization Name <span className="text-red-500">*</span>
-          </label>
-          <TextInput
-            placeholder="Enter organization name"
-            value={organizationName}
-            onChange={(e) => setOrganizationName(e.currentTarget.value)}
-          />
-        </div>
-
-        <div>
-          <label className="text-sm font-medium">Center Name</label>
-          <TextInput
-            placeholder="Enter Center name"
-            value={centerName}
-            onChange={(e) => setCenterName(e.currentTarget.value)}
-          />
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <label className="text-sm font-medium">
+              Organization Name <span className="text-red-500">*</span>
+            </label>
+            <TextInput
+              placeholder="Enter organization name"
+              value={organizationName}
+              onChange={(e) => setOrganizationName(e.currentTarget.value)}
+            />
+          </div>
+          <div className="flex-1">
+            <label className="text-sm font-medium">Center Name</label>
+            <TextInput
+              placeholder="Enter Center name"
+              value={centerName}
+              onChange={(e) => setCenterName(e.currentTarget.value)}
+            />
+          </div>
         </div>
 
         <div>
@@ -144,97 +183,123 @@ const OrganizationForm: React.FC = () => {
             <label className="text-sm font-medium">
               Address <span className="text-red-500">*</span>
             </label>
-            <div>
-              <Button
-                variant="subtle"
-                onClick={addAddress}
-                className="flex items-center gap-2"
-                disabled={addresses.length >= 1}
-              >
-                <IconPlus size={14} />
-                Add Address
-              </Button>
-            </div>
           </div>
 
           <div className="space-y-3 mt-3">
-            {addresses.length === 0 ? (
-              <div></div>
-            ) : (
-              addresses.map((addr, i) => (
-                <Paper
-                  key={i}
-                  withBorder
-                  radius="md"
-                  className="p-3 border-gray-200"
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-start gap-2">
-                      <TextInput
-                        className="flex-1"
-                        placeholder={
-                          i === 0
-                            ? "Enter primary address"
-                            : "Enter additional address"
-                        }
-                        value={addr.addressLine}
-                        onChange={(e) =>
-                          updateAddress(i, "addressLine", e.currentTarget.value)
-                        }
-                      />
-                      <div className="flex-shrink-0">
-                        <ActionIcon
-                          color="red"
-                          variant="light"
-                          onClick={() => removeAddress(i)}
-                          aria-label="Remove address"
-                        >
-                          <IconTrash size={16} />
-                        </ActionIcon>
-                      </div>
-                    </div>
+            {addresses.map((addr, i) => (
+              <Paper
+                key={i}
+                withBorder
+                radius="md"
+                className="p-3 border-gray-200"
+              >
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2">
+                    <TextInput
+                      className="flex-1"
+                      placeholder={
+                        i === 0
+                          ? "Enter primary address"
+                          : "Enter additional address"
+                      }
+                      value={addr.address}
+                      onChange={(e) =>
+                        updateAddress(i, "address", e.currentTarget.value)
+                      }
+                    />
+                  </div>
 
-                    <div className="flex gap-2">
+                  <div>
+                    {/* <TextInput
+                      placeholder="City"
+                      value={addr.city}
+                      onChange={(e) =>
+                        updateAddress(i, "city", e.currentTarget.value)
+                      }
+                    /> */}
+                    <TextInput
+                      placeholder="Postal Code"
+                      value={addr.postal_code}
+                      onChange={(e) =>
+                        updateAddress(i, "postal_code", e.currentTarget.value)
+                      }
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 flex gap-2">
                       <TextInput
-                        placeholder="City"
-                        value={addr.city}
+                        placeholder="Latitude"
+                        value={addr.lat}
                         onChange={(e) =>
-                          updateAddress(i, "city", e.currentTarget.value)
+                          updateAddress(i, "lat", e.currentTarget.value)
                         }
                       />
                       <TextInput
-                        placeholder="Pincode"
-                        value={addr.pincode}
+                        placeholder="Longitude"
+                        value={addr.lng}
                         onChange={(e) =>
-                          updateAddress(i, "pincode", e.currentTarget.value)
+                          updateAddress(i, "lng", e.currentTarget.value)
                         }
                       />
+                    </div>
+                    <div className="flex-shrink-0">
+                      <ActionIcon
+                        size={36}
+                        variant="light"
+                        color="blue"
+                        onClick={() => setMapOpen(true)}
+                        aria-label="Open map selector"
+                        title="Open map selector"
+                      >
+                        <IconMapPin />
+                      </ActionIcon>
                     </div>
                   </div>
-                </Paper>
-              ))
-            )}
+                </div>
+              </Paper>
+            ))}
           </div>
         </div>
 
-        <div>
-          <label className="text-sm font-medium">
-            Primary Contact Number <span className="text-red-500">*</span>
-          </label>
-          <TextInput
-            placeholder="Enter primary contact number"
-            value={primaryContact}
-            onChange={(e) => setPrimaryContact(e.currentTarget.value)}
+        <Modal
+          opened={mapOpen}
+          onClose={() => setMapOpen(false)}
+          title="Select location"
+          size="xl"
+          centered
+        >
+          <SelectableMap
+            height="600px"
+            initialLat={
+              addresses[0]?.lat ? parseFloat(addresses[0].lat) : 22.548256
+            }
+            initialLng={
+              addresses[0]?.lng ? parseFloat(addresses[0].lng) : 88.345177
+            }
+            onLocationSelect={handleMapLocationSelect}
           />
-        </div>
+        </Modal>
 
-        <div>
-          <label className="text-sm font-medium">Secondary Number</label>
-          <TextInput
-            placeholder="Enter secondary number"
-            value={secondaryContact}
-            onChange={(e) => setSecondaryContact(e.currentTarget.value)}
-          />
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <label className="text-sm font-medium">
+              Primary Contact Number <span className="text-red-500">*</span>
+            </label>
+            <TextInput
+              placeholder="Enter primary contact number"
+              value={primaryContact}
+              onChange={(e) => setPrimaryContact(e.currentTarget.value)}
+            />
+          </div>
+          <div className="flex-1">
+            <label className="text-sm font-medium">Secondary Number</label>
+            <TextInput
+              placeholder="Enter secondary number"
+              value={secondaryContact}
+              onChange={(e) => setSecondaryContact(e.currentTarget.value)}
+            />
+          </div>
         </div>
 
         <div>

@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Paper, TextInput, Button, Text } from "@mantine/core";
 
 interface LoginFormProps {
@@ -6,13 +7,24 @@ interface LoginFormProps {
 }
 
 const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [identifier, setIdentifier] = useState("");
+
+  useEffect(() => {
+    
+    const state = (location.state || {}) as { identifier?: string };
+    if (state.identifier) setIdentifier(state.identifier);
+  }, [location.state]);
 
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!identifier.trim()) return;
-    if (onLogin) onLogin(identifier.trim());
-    else console.log("Login identifier:", identifier.trim());
+    const trimmed = identifier.trim();
+    if (onLogin) onLogin(trimmed);
+    else console.log("Login identifier:", trimmed);
+   
+    navigate("../login-otp", { state: { identifier: trimmed } });
   };
 
   return (

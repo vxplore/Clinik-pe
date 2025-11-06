@@ -1,9 +1,17 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button, TextInput, ActionIcon } from "@mantine/core";
 import { useNavigate, useLocation } from "react-router-dom";
 import { IconPencil } from "@tabler/icons-react";
 import OtpPinInput from "./Components/OtpPinInput";
 import Notification from "../GlobalNotification/Notification";
+import { useDeviceId } from "../../Customhooks/useDeviceId";
+import { useDeviceType } from "../../Customhooks/useDeviceType";
+import apis from "../../APis/Api";
+import type {
+  VerifyOtpPayload,
+  OrganizationAddPayload,
+  ResendOtpPayload,
+} from "../../APis/Types";
 
 const OnboardingOtpForm: React.FC = () => {
   const [otpValue, setOtpValue] = useState<string>("");
@@ -13,10 +21,20 @@ const OnboardingOtpForm: React.FC = () => {
   }>({ open: false, data: { success: true, message: "" } });
   const navigate = useNavigate();
   const location = useLocation();
+  const deviceId = useDeviceId();
+  const deviceType = useDeviceType();
+  const [timer, setTimer] = useState<number>(60);
+  const [resendLoading, setResendLoading] = useState<boolean>(false);
   const state = (location.state || {}) as {
     phoneNumber?: string;
     countryCode?: string;
+    otp_id?: string;
+    request_id?: string;
+    resendPayload?: OrganizationAddPayload;
   };
+  const [localOtpId, setLocalOtpId] = useState<string | undefined>(
+    state.otp_id
+  );
   const maskNumber = (num?: string) => {
     if (!num) return "xxxxxx1234";
     const cleaned = num.replace(/\D/g, "");
@@ -37,21 +55,104 @@ const OnboardingOtpForm: React.FC = () => {
   };
 
   const handleVerify = () => {
-    if (otpValue.length !== 6) {
+    // validate length: expect exactly 4 digits
+    if (otpValue.length !== 4) {
       setNotif({
         open: true,
         data: {
           success: false,
-          message: "Please enter the complete 6-digit OTP.",
+          message: "Please enter the complete 4-digit OTP.",
         },
       });
       return;
     }
-    // TODO: Call API to verify OTP with phoneNumber and otpValue
-    // Example: fetch('/api/verify-otp', { method: 'POST', body: JSON.stringify({ phone: state.phoneNumber, otp: otpValue }) })
-    // If success, navigate to organization
-    console.log("Verifying OTP:", otpValue);
-    navigate("/organization");
+
+    // Build verify payload using state.request_id and otp id from local state
+    const payload = {
+      request_id: state.request_id || "",
+      otp_id: localOtpId || state.otp_id || "",
+      otp: otpValue,
+      device_type: deviceType || "unknown",
+      device_id: deviceId || "",
+      frontend_type: "browser",
+    };
+
+    const verify = async () => {
+      try {
+        console.log("Verifying OTP payload:", payload);
+        const resp = await apis.OrganizationOtpVerification(
+          payload as VerifyOtpPayload
+        );
+        console.log("OTP verify response:", resp);
+        const success = resp?.success ?? false;
+        const message = resp?.message;
+        setNotif({ open: true, data: { success, message } });
+
+        if (success) {
+          setTimeout(() => navigate("/organization"), 1500);
+        }
+      } catch (err) {
+        console.error(err);
+        let message = "Network error";
+        if (err instanceof Error) message = err.message;
+        setNotif({ open: true, data: { success: false, message } });
+      }
+    };
+
+    verify();
+  };
+
+  // countdown timer effect
+  useEffect(() => {
+    setTimer(60);
+    const id = setInterval(() => {
+      setTimer((t) => (t > 0 ? t - 1 : 0));
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const handleResend = async () => {
+    // only allow when timer === 0
+    if (timer > 0) return;
+    if (!state.request_id) {
+      setNotif({
+        open: true,
+        data: {
+          success: false,
+          message: "No request id available to resend OTP",
+        },
+      });
+      return;
+    }
+    setResendLoading(true);
+    try {
+      const resendPayload: ResendOtpPayload = {
+        request_id: state.request_id || "",
+        device_type: deviceType || "unknown",
+        device_id: deviceId || "",
+        frontend_type: "browser",
+      };
+
+      const resp = await apis.ResendOrganizationOtp(resendPayload);
+      console.log("Resend response:", resp);
+      const success = resp?.success ?? false;
+      const message =
+        resp?.message ?? (success ? "OTP resent" : "Resend failed");
+      setNotif({ open: true, data: { success, message } });
+      if (success) {
+        // update otp id returned by resend
+        setLocalOtpId(resp.data?.otp_id);
+        // restart timer (the existing interval from mount will handle countdown)
+        setTimer(60);
+      }
+    } catch (err) {
+      console.error(err);
+      let message = "Network error";
+      if (err instanceof Error) message = err.message;
+      setNotif({ open: true, data: { success: false, message } });
+    } finally {
+      setResendLoading(false);
+    }
   };
 
   return (
@@ -66,7 +167,7 @@ const OnboardingOtpForm: React.FC = () => {
       </h3>
       <div className="mb-4">
         <p className="text-sm text-gray-600 mb-2 text-center">
-          We have sent a 6-digit code to {phoneDisplay}. Please enter it below
+          We have sent a 4-digit code to {phoneDisplay}. Please enter it below
           to continue
         </p>
         <div className="max-w-sm mx-auto">
@@ -106,20 +207,40 @@ const OnboardingOtpForm: React.FC = () => {
       <div className="mb-72">
         <div className="flex gap-2 justify-center">
           <OtpPinInput
-            length={6}
+            length={4}
             value={otpValue}
             onChange={(v) => setOtpValue(v)}
             onComplete={handleComplete}
           />
         </div>
         <div className="text-center text-sm text-gray-500 mt-3">
-          Resend OTP in 30s. <button className="text-blue-600">Resend</button>
+          {timer > 0 ? (
+            <>
+              Resend OTP in {Math.floor(timer / 60)}:
+              {String(timer % 60).padStart(2, "0")}.{" "}
+              <button className="text-gray-400" disabled>
+                Resend
+              </button>
+            </>
+          ) : (
+            <>
+              
+              <button
+                className="text-blue-600"
+                onClick={handleResend}
+                disabled={resendLoading}
+              >
+                {resendLoading ? "Resending..." : "Resend"}
+              </button>
+            </>
+          )}
         </div>
       </div>
 
       <Button
         fullWidth
         onClick={handleVerify}
+        disabled={otpValue.length !== 4}
         styles={{ root: { backgroundColor: "#2563eb", borderRadius: 6 } }}
       >
         Verify & Continue
