@@ -56,7 +56,7 @@ const OrganizationForm: React.FC = () => {
     setMapOpen(false);
   };
 
-  const handleSubmit = async(e?: React.FormEvent) => {
+  const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
     // Basic validation
     if (
@@ -88,12 +88,12 @@ const OrganizationForm: React.FC = () => {
       primary_contact: primaryContact.trim(),
       secondary_contact: secondaryContact.trim() || undefined,
       address: {
-        address: (addr.address).trim(),
+        address: addr.address.trim(),
         lat: (addr.lat || "").toString(),
         lng: (addr.lng || "").toString(),
-        postalcode: (addr.postal_code || "").toString(),
+        postalCode: (addr.postal_code || "").toString(),
       },
-      branch_email: branchEmail.trim() || undefined,
+      branch_email: (branchEmail || "").trim(),
     };
 
     const response = await apis.AddOrganization(payload);
@@ -104,7 +104,7 @@ const OrganizationForm: React.FC = () => {
       open: true,
       data: {
         success: response.success,
-        message: response.message
+        message: response.message,
       },
     });
     // navigate("/success");
