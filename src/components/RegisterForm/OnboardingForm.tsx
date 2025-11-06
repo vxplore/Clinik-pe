@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { TextInput, Select, Button } from "@mantine/core";
+import Notification from "../GlobalNotification/Notification";
 
 // ========================================
 // OnboardingForm Component
@@ -11,6 +13,8 @@ export interface OnboardingFormData {
   phoneNumber: string;
   emailAddress: string;
   role: string;
+  // store country code so OTP can display the exact number
+  countryCode?: string;
 }
 
 interface OnboardingFormProps {
@@ -18,22 +22,76 @@ interface OnboardingFormProps {
 }
 
 const OnboardingForm: React.FC<OnboardingFormProps> = ({ onSubmit }) => {
+  const location = useLocation();
   const [formData, setFormData] = useState<OnboardingFormData>({
     fullName: "",
+
     phoneNumber: "",
     emailAddress: "",
     role: "",
+    countryCode: "+91",
   });
+  const navigate = useNavigate();
+  const [notif, setNotif] = useState<{
+    open: boolean;
+    data: { success: boolean; message: string };
+  }>({ open: false, data: { success: true, message: "" } });
+
+  // If navigated back from OTP with state (edit), prefill the phone fields
+  useEffect(() => {
+    const state = (location.state || {}) as {
+      phoneNumber?: string;
+      countryCode?: string;
+    };
+    if (state.phoneNumber) {
+      setFormData((prev) => ({
+        ...prev,
+        phoneNumber: state.phoneNumber || prev.phoneNumber,
+        countryCode: state.countryCode || prev.countryCode,
+      }));
+    }
+  }, [location.state]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Basic validation
+    if (
+      !formData.fullName.trim() ||
+      !formData.phoneNumber.trim() ||
+      !formData.emailAddress.trim() ||
+      !formData.role
+    ) {
+      setNotif({
+        open: true,
+        data: {
+          success: false,
+          message: "Please fill in all required fields.",
+        },
+      });
+      return;
+    }
     if (onSubmit) {
       onSubmit(formData);
     }
+    // TODO: Optionally send initial onboarding data to API before OTP
+    // Example: fetch('/api/start-onboarding', { method: 'POST', body: JSON.stringify(formData) })
+    // After submitting the basic onboarding form, navigate to the OTP step
+    // and include phone info in route state so OTP can display the exact number.
+    navigate("otp", {
+      state: {
+        phoneNumber: formData.phoneNumber,
+        countryCode: formData.countryCode,
+      },
+    });
   };
 
   return (
     <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md ring-1 ring-gray-100">
+      <Notification
+        open={notif.open}
+        data={notif.data}
+        onClose={() => setNotif((s) => ({ ...s, open: false }))}
+      />
       {/* Form Header */}
       <div className="mb-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-2">
@@ -85,7 +143,10 @@ const OnboardingForm: React.FC<OnboardingFormProps> = ({ onSubmit }) => {
           <div className="flex gap-2">
             <Select
               data={["+91", "+1", "+44", "+61"]}
-              defaultValue="+91"
+              value={formData.countryCode}
+              onChange={(val) =>
+                setFormData({ ...formData, countryCode: val || "+91" })
+              }
               size="md"
               className="w-24"
               styles={{

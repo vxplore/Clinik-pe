@@ -8,6 +8,7 @@ import "@mantine/notifications/styles.css";
 import "mantine-datatable/styles.layer.css";
 import "./App.css";
 import AppContents from "./AppContents";
+import { Notifications } from '@mantine/notifications';
 
 
 
@@ -31,6 +32,7 @@ function App() {
     <>
       <MantineProvider theme={theme} >
         <BrowserRouter>
+         <Notifications position="top-right" />
           <AppContents />
         </BrowserRouter>
       </MantineProvider>

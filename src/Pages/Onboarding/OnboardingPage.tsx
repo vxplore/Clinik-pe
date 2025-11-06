@@ -1,25 +1,14 @@
-import FeatureCard from "../components/FeatureCard";
-import OnboardingForm, {
-  type OnboardingFormData,
-} from "../components/OnboardingForm";
+import { Outlet } from "react-router-dom";
+import FeatureCard from "../Onboarding/Components/FeatureCard";
 import { IconUsers, IconClock, IconCreditCard } from "@tabler/icons-react";
-import logoPng from "../assets/logo.png";
+import logoPng from "../../assets/logo.png";
 
 const OnboardingPage = () => {
-  const handleFormSubmit = (data: OnboardingFormData) => {
-    console.log("Form submitted:", data);
-  };
-
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Desktop-only main container (hidden on small screens) */}
-      <div className="hidden lg:block">
-        {/* Main Container for large screens */}
-        <div className="flex flex-row min-h-screen">
-          {/* ========================================
-              LEFT SECTION - Branding & Features
-              ======================================== */}
-          <div className="flex-1 bg-transparent p-8 lg:p-16 flex flex-col justify-center">
+    <div className="min-h-screen bg-blue-50">
+      <div>
+        <div className="flex flex-col lg:flex-row min-h-screen">
+          <div className="flex-1 bg-transparent p-6 lg:p-16 flex flex-col justify-center">
             {/* Logo Section */}
             <div className="mb-12">
               <div className="flex items-center gap-2 mb-2">
@@ -71,16 +60,11 @@ const OnboardingPage = () => {
             </div>
           </div>
 
-          {/* ========================================
-            RIGHT SECTION - Onboarding Form
-            ======================================== */}
-          <div className="flex-1 bg-transparent p-8 lg:p-16 flex items-center justify-center">
-            <OnboardingForm  onSubmit={handleFormSubmit} />
+          <div className="flex-1 bg-transparent p-6 lg:p-16 flex items-center justify-center">
+            <Outlet />
           </div>
         </div>
       </div>
-
-      
     </div>
   );
 };
