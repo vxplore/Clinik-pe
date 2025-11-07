@@ -9,11 +9,11 @@ export default function AppLayout() {
       <SideBar />
 
       {/* ✅ Right content area */}
-      <div className="flex flex-col flex-1">
+      <div className="flex flex-col flex-1 h-screen">
         <Header />
 
         {/* ✅ Main page content */}
-        <main className="flex-1 bg-blue-50/50 p-4">
+        <main className="flex-1 bg-blue-50/50 p-4 overflow-auto">
           <Outlet />
         </main>
       </div>

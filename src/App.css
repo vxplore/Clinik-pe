@@ -1,3 +1,68 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #45ced9;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #0a4fb0;
+}
+.sidebarNav a{
+  color: #CECECE;
+  background-color: transparent;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.sidebarNav a:hover, .sidebarNav a:focus{
+  background-color: rgba(255,255,255,0.05);
+}
+.sidebarNav .mantine-NavLink-children{
+  position: relative;
+}
+.sidebarNav .mantine-NavLink-children:after{
+  content: '';
+  left: 20px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: #CECECE;
+  border-radius: 5px;
+  position: absolute;
+}
+.menuBar .mantine-Button-section{
+  margin: 0;
+}
+.smallSidebar .sidebarNav .mantine-NavLink-body, .smallSidebar .sidebarFooter .mantine-Button-label, .smallSidebar .sidebarNav .mantine-NavLink-body + .mantine-NavLink-section{
+  display: none;
+}
+.smallSidebar .sidebarFooter .mantine-Button-section, .smallSidebar .sidebarNav .mantine-NavLink-section{
+  margin-right: 0;
+}
+.logoSmall{
+  display: none;
+}
+.logoBig{
+  min-width: 224px;
+}
+.smallSidebar .logoSmall{
+  display: block;
+  max-height: 54px;
+  max-width: 54px;
+  min-width: 54px;
+  max-width: 54px;
+}
+.smallSidebar .logoBig{
+  display: none;
+}
+.smallSidebar .sidebarNav .mantine-NavLink-children{
+  display: none;
+}
