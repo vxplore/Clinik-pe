@@ -47,7 +47,7 @@ const useAuthStore = create<AuthState>()(
             setOrganizationDetails: (details) => set({ organizationDetails: details }),
         }),
         {
-            name: "auth-storage", // key in localStorage
+            name: "auth-storage", 
         }
     )
 );

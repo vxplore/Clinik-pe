@@ -3,6 +3,7 @@ import { DataTable, type DataTableColumn } from "mantine-datatable";
 import { IconDots } from "@tabler/icons-react";
 import successImg from "../../../assets/success.png";
 import { Button, Select } from "@mantine/core";
+import {useNavigate} from "react-router-dom";
 
 type Row = {
   id: number;
@@ -14,6 +15,7 @@ type Row = {
   availability?: string;
   status: "Verified" | "Active" | "Inactive";
 };
+
 
 const rowsData: Row[] = [
   {
@@ -55,6 +57,7 @@ const rowsData: Row[] = [
 ];
 
 const ProviderTable: React.FC = () => {
+    const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<number[]>([]);
   const headerCheckboxRef = useRef<HTMLInputElement | null>(null);
@@ -90,6 +93,12 @@ const ProviderTable: React.FC = () => {
       headerCheckboxRef.current.indeterminate = someSelected && !allSelected;
     }
   }, [paginated, selected]);
+
+
+
+  const  HandleAdd = () => {
+    navigate('/providers/add');
+  }
 
   const columns: DataTableColumn<Row>[] = [
     {
@@ -243,6 +252,7 @@ const ProviderTable: React.FC = () => {
           />
 
           <Button
+          onClick={HandleAdd}
             variant="filled"
             color="blue"
             className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-md"

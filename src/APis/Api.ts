@@ -1,4 +1,4 @@
-import type { OrganizationAddPayloads, OrganizationLoginRequestPayload, OrganizationRegistrationPayload, OrganizationSuccessResponse, ResendOtpPayload, ResendOtpResponse, VerifyOtpPayload, VerifyOtpResponse, AccessToken, OrganizationAddInside, OrganizationAddInsideResponse, OrganizationListResponse } from "./Types";
+import type { OrganizationAddPayloads, OrganizationLoginRequestPayload, OrganizationRegistrationPayload, OrganizationSuccessResponse, ResendOtpPayload, ResendOtpResponse, VerifyOtpPayload, VerifyOtpResponse, AccessToken, OrganizationAddInside, OrganizationAddInsideResponse, OrganizationListResponse, ClinicRequestPayload, CenterRequestPayload, CreateCenterResponse, CenterListResponse } from "./Types";
 import apiAgent from "./apiAgents";
 
 class Apis {
@@ -6,7 +6,7 @@ class Apis {
     payload: OrganizationRegistrationPayload
   ): Promise<| OrganizationSuccessResponse> {
     const response = await apiAgent
-      .path("/organization/register")
+      .path("/organizations/register")
       .method("POST")
       .json(payload)
       .execute();
@@ -18,7 +18,7 @@ class Apis {
     payload: VerifyOtpPayload
   ): Promise<VerifyOtpResponse> {
     const response = await apiAgent
-      .path("/organization/otp-verification")
+      .path("/organizations/otp-verification")
       .method("POST")
       .json(payload)
       .execute();
@@ -30,7 +30,7 @@ class Apis {
     payload: ResendOtpPayload
   ): Promise<ResendOtpResponse> {
     const response = await apiAgent
-      .path("/organization/resent-otp")
+      .path("/organizations/resent-otp")
       .method("POST")
       .json(payload)
       .execute();
@@ -43,7 +43,7 @@ class Apis {
     payload: OrganizationAddPayloads
   ): Promise<OrganizationSuccessResponse> {
     const response = await apiAgent
-      .path("/organization/onboarding")
+      .path("/organizations/onboarding")
       .method("POST")
       .json(payload)
       .execute();
@@ -54,7 +54,7 @@ class Apis {
     payload: OrganizationLoginRequestPayload
   ): Promise<OrganizationSuccessResponse> {
     const response = await apiAgent
-      .path("/organization/login")
+      .path("/organizations/login")
       .method("POST")
       .json(payload)
       .execute();
@@ -65,7 +65,7 @@ class Apis {
     payload: VerifyOtpPayload
   ): Promise<AccessToken> {
     const response = await apiAgent
-      .path("/organization/login-otp-verification")
+      .path("/organizations/login-otp-verification")
       .method("POST")
       .json(payload)
       .execute();
@@ -76,7 +76,7 @@ class Apis {
     payload: ResendOtpPayload
   ): Promise<ResendOtpResponse> {
     const response = await apiAgent
-      .path("/organization/resend-login-otp")
+      .path("/organizations/resend-login-otp")
       .method("POST")
       .json(payload)
       .execute();
@@ -88,7 +88,7 @@ class Apis {
   async SwitchClinic(
   ): Promise<AccessToken> {
     const response = await apiAgent
-      .path("/organization/switch-clinic")
+      .path("/organizations/switch-clinic")
       .method("POST")
       .execute();
 
@@ -99,7 +99,7 @@ class Apis {
     payload: OrganizationAddInside
   ): Promise<OrganizationAddInsideResponse> {
     const response = await apiAgent
-      .path("/organization")
+      .path("/organizations")
       .method("POST")
       .json(payload)
       .execute();
@@ -107,14 +107,77 @@ class Apis {
     return response.data as OrganizationAddInsideResponse;
   }
 
-  async GetOrganizationsList(): Promise<OrganizationListResponse> {
+  async GetOrganizationsList(
+    payload?: {
+      search?: string,
+      country?: string,
+      pageNumber?: number,
+      pageSize?: number,
+      status?: string,
+      configuration?: string | string[]
+    }
+  ): Promise<OrganizationListResponse> {
+
+    const queryPayload = payload
+      ? {
+        ...payload,
+        configuration: Array.isArray(payload.configuration)
+          ? payload.configuration.join(",")
+          : payload.configuration,
+      }
+      : {};
+
     const response = await apiAgent
-      .path("/organization/list")
+      .path("/organizations/list")
       .method("GET")
-      .query({})
+      .query(queryPayload)
       .execute();
+
     return response.data as OrganizationListResponse;
   }
+
+
+
+  //add clinic
+  async AddClinicFromInside(
+    payload: CenterRequestPayload
+  ): Promise<CreateCenterResponse> {
+    const response = await apiAgent
+      .path("/center")
+      .method("POST")
+      .json(payload)
+      .execute();
+
+    return response.data as CreateCenterResponse;
+  }
+
+  async GetClinicsList(
+    organization_id?: string,
+    payload?: {
+      type?: string;
+      search?: string;
+      pageNumber?: number;
+      pageSize?: number;
+      status?: string;
+      configuration?: string | string[];
+    }
+  ): Promise<CenterListResponse> {
+    const queryPayload = payload
+      ? {
+        ...payload,
+        configuration: Array.isArray(payload.configuration)
+          ? payload.configuration.join(",")
+          : payload.configuration,
+      }
+      : {};
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers`)
+      .method("GET")
+      .query(queryPayload)
+      .execute();
+    return response.data as CenterListResponse;
+  }
+
 
 
 
