@@ -1,5 +1,4 @@
 import { Routes, Route } from "react-router-dom";
-import Home from "./Pages/Home";
 import OnboardingPage from "./Pages/Onboarding/OnboardingPage";
 import OnboardingForm from "./components/RegisterForm/OnboardingForm";
 import OnboardingOtpForm from "./components/OtpForm/OnboardingOtpForm";
@@ -14,6 +13,9 @@ import ClinicList from "./Pages/Clinic/ClinicList";
 import ProviderList from "./Pages/Provider/ProviderList";
 import AddOrganization from "./Pages/Organization/AddOrganization";
 import PublicRoute from "./Layouts/PublicRoute";
+import DoctorLoginPage from "./Pages/Doctor/DoctorLogin/DoctorLoginPage";
+import DoctorDashboardPage from "./Pages/Doctor/DoctorDashboard/DoctorDashboard";
+import AppointmentsPage from "./Pages/Doctor/Appointments/AppointmentsPage";
 
 function AppContents() {
   return (
@@ -47,9 +49,12 @@ function AppContents() {
         <Route path="/organization/add" element={<AddOrganization />} />
         <Route path="/clinic" element={<ClinicList />} />
         <Route path="/providers" element={<ProviderList />} />
+        
+        <Route path="/doctor-dashboard" element={<DoctorDashboardPage />} />
+        <Route path="/doctor-appointments" element={<AppointmentsPage />} />
       </Route>
 
-     
+     <Route path="/doctor-login" element={<DoctorLoginPage />} />
     </Routes>
   );
 }

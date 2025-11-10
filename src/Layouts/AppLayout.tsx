@@ -13,7 +13,7 @@ export default function AppLayout() {
         <Header />
 
         {/* ✅ Main page content */}
-        <main className="flex-1 bg-blue-50/50 p-4 overflow-auto">
+        <main className="flex-1 bg-blue-50/50 py-4 px-6 overflow-auto">
           <Outlet />
         </main>
       </div>
