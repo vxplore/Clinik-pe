@@ -149,7 +149,7 @@ class ApiAgent {
 const apiAgent = new ApiAgent();
 
 
-const pmsApiAgent = new ApiAgent("https://pms.v-xplore.com");
+// const pmsApiAgent = new ApiAgent("https://pms.v-xplore.com");
 //const pmsApiAgent = new ApiAgent("http://localhost:3000");
 export default apiAgent;
-export { pmsApiAgent };
+// export { pmsApiAgent };

@@ -2,10 +2,12 @@ import React, { useEffect, useRef, useState } from "react";
 import { DataTable, type DataTableColumn } from "mantine-datatable";
 import { IconDots } from "@tabler/icons-react";
 import { Button, Select } from "@mantine/core";
+import { useNavigate } from "react-router-dom";
+import type { Center } from "../../../APis/Types";
 
 type Row = {
   id: number;
-  logoColor?: string; // used to render small square logo
+  logoColor?: string;
   centerName: string;
   type: string;
   location: string;
@@ -14,57 +16,55 @@ type Row = {
   status: "Active" | "Inactive";
 };
 
-const rowsData: Row[] = [
-  {
-    id: 1,
-    logoColor: "bg-blue-100",
-    centerName: "Medilife Center",
-    type: "Clinic",
-    location: "New York, USA",
-    contactPerson: "Dr. John Doe",
-    providers: 10,
-    status: "Active",
-  },
-  {
-    id: 2,
-    logoColor: "bg-purple-100",
-    centerName: "Global Healthcare Center",
-    type: "Diagnostic",
-    location: "Mumbai, India",
-    contactPerson: "Ms. Priya Singh",
-    providers: 5,
-    status: "Active",
-  },
-  {
-    id: 3,
-    logoColor: "bg-green-100",
-    centerName: "EcoEnergy Clinic",
-    type: "Diagnostic",
-    location: "San Francisco, USA",
-    contactPerson: "Mr. Alan Green",
-    providers: 4,
-    status: "Inactive",
-  },
-  {
-    id: 4,
-    logoColor: "bg-amber-100",
-    centerName: "FinanceFirst Clinic",
-    type: "Diagnostic",
-    location: "Bengaluru, India",
-    contactPerson: "Ms. Sita Rao",
-    providers: 2,
-    status: "Inactive",
-  },
-];
+interface ClinicTableProps {
+  centerData: Center[];
+  total: number;
+  page: number;
+  pageSize: number;
+  onPageChange: (page: number) => void;
+  onTypeChange: (type: string | undefined) => void;
+  onStatusChange: (status: string | undefined) => void;
+  selectedType?: string | undefined;
+  selectedStatus?: string | undefined;
+}
 
-const ClinicTable: React.FC = () => {
-  const [page, setPage] = useState(1);
+const ClinicTable: React.FC<ClinicTableProps> = ({
+  centerData,
+  total,
+  page,
+  pageSize,
+  onPageChange,
+  onTypeChange,
+  onStatusChange,
+  selectedType,
+  selectedStatus,
+}) => {
+  const navigate = useNavigate();
   const [selected, setSelected] = useState<number[]>([]);
   const headerCheckboxRef = useRef<HTMLInputElement | null>(null);
-  const pageSize = 5;
 
-  // pagination slice
-  const paginated = rowsData.slice((page - 1) * pageSize, page * pageSize);
+  // Note: API calls are now managed by parent (ClinicList), this component is presentational
+
+  // Map API center objects to Row shape
+  const paginated: Row[] = (centerData || []).map((c: Center, idx: number) => ({
+    id: Number(c.id) || idx + 1,
+    logoColor:
+      c.type === "Clinic"
+        ? "bg-green-100"
+        : c.type === "Diagnostic"
+        ? "bg-purple-100"
+        : "bg-gray-100",
+    centerName: c.name || "",
+    type:
+      c.type ||
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ((c.is_clinic as any) === "1" ? "Clinic" : "Diagnostic"),
+    location: c.address || "",
+    contactPerson: c.primary_contact || "",
+    providers: 0,
+    status:
+      c.status === "Active" || c.status === "active" ? "Active" : "Inactive",
+  }));
 
   const toggleRow = (id: number) => {
     setSelected((prev) =>
@@ -85,7 +85,7 @@ const ClinicTable: React.FC = () => {
   };
 
   useEffect(() => {
-    const ids = paginated.map((r) => r.id);
+    const ids = paginated.map((r: Row) => Number(r.id));
     const someSelected = ids.some((id) => selected.includes(id));
     const allSelected =
       ids.length > 0 && ids.every((id) => selected.includes(id));
@@ -213,6 +213,11 @@ const ClinicTable: React.FC = () => {
               input:
                 "border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-0 focus-visible:outline-none",
             }}
+            value={selectedType ?? "All Countries"}
+            onChange={(v) => {
+              const val: string | undefined = v ?? undefined;
+              onTypeChange(val === "All Countries" ? undefined : val);
+            }}
           />
 
           <Select
@@ -222,9 +227,15 @@ const ClinicTable: React.FC = () => {
               input:
                 "border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-0 focus-visible:outline-none",
             }}
+            value={selectedStatus ?? "All Status"}
+            onChange={(v) => {
+              const val: string | undefined = v ?? undefined;
+              onStatusChange(val === "All Status" ? undefined : val);
+            }}
           />
 
           <Button
+            onClick={() => navigate("/centers/add")}
             variant="filled"
             color="blue"
             className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-md"
@@ -247,22 +258,28 @@ const ClinicTable: React.FC = () => {
 
       {/* Pagination */}
       <div className="flex items-center justify-between text-sm text-gray-500 mt-4">
-        <div>Showing 1 to 10 of {rowsData.length} entries</div>
+        <div>
+          Showing {(page - 1) * pageSize + 1} to{" "}
+          {Math.min(page * pageSize, total)} of {total} entries
+        </div>
 
         <div className="inline-flex items-center gap-2">
           <button
             className="px-3 py-1 border rounded text-gray-600"
             disabled={page === 1}
-            onClick={() => setPage((p) => p - 1)}
+            onClick={() => onPageChange(page - 1)}
           >
             Previous
           </button>
 
           <div className="inline-flex items-center gap-1">
-            {[1, 2, 3].map((n) => (
+            {Array.from(
+              { length: Math.max(1, Math.ceil(total / pageSize)) },
+              (_, i) => i + 1
+            ).map((n) => (
               <button
                 key={n}
-                onClick={() => setPage(n)}
+                onClick={() => onPageChange(n)}
                 className={`w-8 h-8 rounded ${
                   page === n ? "bg-blue-600 text-white" : "border text-gray-600"
                 }`}
@@ -274,8 +291,8 @@ const ClinicTable: React.FC = () => {
 
           <button
             className="px-3 py-1 border rounded text-gray-600"
-            disabled={page === 3}
-            onClick={() => setPage((p) => p + 1)}
+            disabled={page >= Math.ceil(Math.max(1, total) / pageSize)}
+            onClick={() => onPageChange(page + 1)}
           >
             Next
           </button>

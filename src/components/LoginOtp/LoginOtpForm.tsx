@@ -135,7 +135,7 @@ const LoginOtpForm: React.FC = () => {
           if (!organization_id && !center_id) {
             navigate("/organization");
           } else if (organization_id && !center_id) {
-            navigate("/center");
+            navigate("/centers");
           } else if (!organization_id && center_id) {
             navigate("/organization");
           } else if (organization_id && center_id) {

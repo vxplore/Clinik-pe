@@ -165,6 +165,150 @@ export interface OrganizationListResponse {
 }
 
 
+export type WorkingHour = {
+  week_day: string;
+  start_time: string;
+  end_time: string;
+};
+
+export type CenterRequestPayload = {
+  name: string;
+  address: string;
+  email: string;
+  primary_contact: string;
+  secondary_contact: string;
+  image_path: string;
+  is_clinic: number;
+  is_diagnostic: number;
+  working_hours: WorkingHour[];
+  organization_id?: string;
+};
+
+export interface CreateCenterResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    center_id: string;
+  };
+}
+
+export interface CenterListResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    center: Center[];
+    center_stats: CenterStats;
+    pagination: Pagination;
+  };
+}
+
+export interface Center {
+  id: string;
+  uid: string;
+  central_account_id: string;
+  organization_id: string | null;
+  name: string;
+  address: string | null;
+  email: string;
+  primary_contact: string;
+  secondary_contact: string;
+  is_clinic: string;
+  is_diagnostic: string;
+  lat: string | null;
+  lng: string | null;
+  image: string;
+  status: string;
+  type: string;
+  created_by: string;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string | null;
+  time_zone: string;
+}
+
+export interface CenterStats {
+  total: number;
+  active: number;
+  inactive: number;
+  growth: {
+    total: GrowthInfo;
+    active: GrowthInfo;
+    inactive: GrowthInfo;
+  };
+}
+
+export interface GrowthInfo {
+  percentage: number;
+  icon: string | null;
+  current: number;
+  last: number;
+}
+
+export interface Pagination {
+  pageNumber: number;
+  pageSize: number;
+  totalRecords: number;
+  pageCount: number;
+}
+export interface ExperienceItem {
+  uid: string;
+  name: string;
+}
+
+
+export interface ExperienceResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: ExperienceItem[];
+}
+
+export interface QualificationItem {
+  uid: string;
+  name: string;
+}
+
+export interface QualificationResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: QualificationItem[];
+}
+
+
+export interface SpecialityItem {
+  uid: string;
+  name: string;
+}
+
+export interface SpecialityResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: SpecialityItem[];
+}
+
+
+export interface UploadData {
+  uploadPath: string;
+}
+
+export interface FileUploadResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: UploadData;
+}
+
+
+
+
+
+
+
+
 
 
 

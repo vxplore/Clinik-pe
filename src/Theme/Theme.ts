@@ -1,4 +1,7 @@
-import { createTheme } from '@mantine/core';
+import { createTheme } from "@mantine/core";
 
-const theme = createTheme({ fontFamily: "Open Sans, sans-serif", components: { UnstyledButton: { styles: { root: { overflow: "visible", }, }, }, }, });
-export default theme
+const theme = createTheme({
+    fontFamily: "Poppins, sans-serif",
+});
+
+export default theme;

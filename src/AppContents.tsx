@@ -12,10 +12,12 @@ import OrganizationList from "./Pages/Organization/OrganizationList";
 import ClinicList from "./Pages/Clinic/ClinicList";
 import ProviderList from "./Pages/Provider/ProviderList";
 import AddOrganization from "./Pages/Organization/AddOrganization";
+import AddCenter from "./Pages/Clinic/AddCenter";
 import PublicRoute from "./Layouts/PublicRoute";
 import DoctorLoginPage from "./Pages/Doctor/DoctorLogin/DoctorLoginPage";
 import DoctorDashboardPage from "./Pages/Doctor/DoctorDashboard/DoctorDashboard";
 import AppointmentsPage from "./Pages/Doctor/Appointments/AppointmentsPage";
+import AddProvider from "./Pages/Provider/AddProvider";
 
 function AppContents() {
   return (
@@ -47,11 +49,13 @@ function AppContents() {
       >
         <Route path="/organization" element={<OrganizationList />} />
         <Route path="/organization/add" element={<AddOrganization />} />
-        <Route path="/clinic" element={<ClinicList />} />
+        <Route path="/centers" element={<ClinicList />} />
+        <Route path="/centers/add" element={<AddCenter />} />
         <Route path="/providers" element={<ProviderList />} />
         
         <Route path="/doctor-dashboard" element={<DoctorDashboardPage />} />
         <Route path="/doctor-appointments" element={<AppointmentsPage />} />
+        <Route path="/providers/add" element={<AddProvider />} />
       </Route>
 
      <Route path="/doctor-login" element={<DoctorLoginPage />} />

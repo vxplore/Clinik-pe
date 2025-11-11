@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { DataTable, type DataTableColumn } from "mantine-datatable";
 import { IconDots } from "@tabler/icons-react";
 import { Button, Select } from "@mantine/core";
@@ -8,17 +8,36 @@ import type { Organization } from "../../../APis/Types";
 const OrganizationTable: React.FC<{
   orgData?: Organization[];
   total?: number;
-}> = ({ orgData = [], total }) => {
+  page?: number;
+  pageSize?: number;
+  onPageChange?: (page: number) => void;
+  onCountryChange?: (country: string | null) => void;
+  onStatusChange?: (status: string | null) => void;
+  selectedCountry?: string | null;
+  selectedStatus?: string | null;
+}> = ({
+  orgData = [],
+  total,
+  page: parentPage,
+  pageSize: parentPageSize,
+  onPageChange,
+  onCountryChange,
+  onStatusChange,
+  selectedCountry,
+  selectedStatus,
+}) => {
   const navigate = useNavigate();
-  const [page, setPage] = useState(1);
+  console.log("OrganizationTable rendered", orgData);
+
+  const [localPage, setLocalPage] = useState(1);
   const [selected, setSelected] = useState<string[]>([]);
   const headerCheckboxRef = useRef<HTMLInputElement | null>(null);
-  const pageSize = 5;
-  // pagination slice
-  const paginated = (orgData || []).slice(
-    (page - 1) * pageSize,
-    page * pageSize
-  );
+  const pageSize = parentPageSize ?? 5; // server page size
+  console.log("orgData:", orgData);
+  const currentPage = parentPage ?? localPage;
+  const records = useMemo(() => orgData ?? [], [orgData]);
+  const totalRecords = total ?? records.length;
+  const pageCount = Math.max(1, Math.ceil((totalRecords ?? 0) / pageSize));
 
   const toggleRow = (id: string) => {
     setSelected((prev) =>
@@ -27,7 +46,7 @@ const OrganizationTable: React.FC<{
   };
 
   const toggleSelectAll = () => {
-    const ids = paginated.map((r) => r.id);
+    const ids = records.map((r) => r.id);
     const allSelected =
       ids.length > 0 && ids.every((id) => selected.includes(id));
     if (allSelected) {
@@ -43,14 +62,16 @@ const OrganizationTable: React.FC<{
     navigate("/organization/add");
   };
   useEffect(() => {
-    const ids = paginated.map((r) => r.id);
+    const ids = records.map((r) => r.id);
     const someSelected = ids.some((id) => selected.includes(id));
     const allSelected =
       ids.length > 0 && ids.every((id) => selected.includes(id));
     if (headerCheckboxRef.current) {
       headerCheckboxRef.current.indeterminate = someSelected && !allSelected;
     }
-  }, [paginated, selected]);
+  }, [records, selected]);
+
+  // No data fetching here — parent component must provide paginated data and control page changes.
 
   const columns: DataTableColumn<Organization>[] = [
     {
@@ -62,8 +83,7 @@ const OrganizationTable: React.FC<{
           type="checkbox"
           className="focus:outline-none focus:ring-0 focus-visible:outline-none"
           checked={
-            paginated.length > 0 &&
-            paginated.every((r) => selected.includes(r.id))
+            records.length > 0 && records.every((r) => selected.includes(r.id))
           }
           onChange={toggleSelectAll}
           aria-label="select all visible"
@@ -93,13 +113,21 @@ const OrganizationTable: React.FC<{
       ),
     },
     { accessor: "country", title: "Country" },
-    { accessor: "timezone", title: "Timezone" },
-    { accessor: "centers", title: "Centers" },
+    { accessor: "time_zone", title: "Timezone", render: (r) => r.time_zone },
+    {
+      accessor: "center_count",
+      title: "Centers",
+      render: (r) => {
+        // center_count may not be declared on Organization type, so guard access safely
+        const maybe: unknown = r;
+        return (maybe as { center_count?: number }).center_count ?? 0;
+      },
+    },
     {
       accessor: "status",
       title: "Status",
       render: (r) =>
-        r.status === "Active" ? (
+        (r.status ?? "").toLowerCase() === "active" ? (
           <span className="inline-flex items-center px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs">
             Active
           </span>
@@ -131,6 +159,15 @@ const OrganizationTable: React.FC<{
           <Select
             placeholder="All Countries"
             data={["All Countries", "India", "United States"]}
+            value={
+              selectedCountry === null || selectedCountry === "All Countries"
+                ? null
+                : selectedCountry
+            }
+            onChange={(val) => {
+              onCountryChange?.(val === "All Countries" ? null : val);
+            }}
+            clearable
             classNames={{
               input:
                 "border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-0 focus-visible:outline-none",
@@ -140,6 +177,15 @@ const OrganizationTable: React.FC<{
           <Select
             placeholder="All Status"
             data={["All Status", "Active", "Inactive"]}
+            value={
+              selectedStatus === null || selectedStatus === "All Status"
+                ? null
+                : selectedStatus
+            }
+            onChange={(val) => {
+              onStatusChange?.(val === "All Status" ? null : val);
+            }}
+            clearable
             classNames={{
               input:
                 "border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-0 focus-visible:outline-none",
@@ -160,7 +206,7 @@ const OrganizationTable: React.FC<{
 
       {/* Mantine DataTable */}
       <DataTable
-        records={paginated}
+        records={records}
         columns={columns}
         highlightOnHover
         className="text-sm"
@@ -171,38 +217,50 @@ const OrganizationTable: React.FC<{
       {/* Pagination */}
       <div className="flex items-center justify-between text-sm text-gray-500 mt-4">
         <div>
-          Showing {paginated.length > 0 ? (page - 1) * pageSize + 1 : 0} to{" "}
-          {(page - 1) * pageSize + paginated.length} of{" "}
-          {total ?? (orgData ? orgData.length : 0)} entries
+          Showing {records.length > 0 ? (currentPage - 1) * pageSize + 1 : 0} to{" "}
+          {(currentPage - 1) * pageSize + records.length} of {totalRecords}{" "}
+          entries
         </div>
 
         <div className="inline-flex items-center gap-2">
           <button
             className="px-3 py-1 border rounded text-gray-600"
-            disabled={page === 1}
-            onClick={() => setPage((p) => p - 1)}
+            disabled={currentPage === 1}
+            onClick={() => {
+              const prev = Math.max(1, currentPage - 1);
+              if (onPageChange) onPageChange(prev);
+              else setLocalPage(prev);
+            }}
           >
             Previous
           </button>
 
           <div className="inline-flex items-center gap-1">
-            {[1, 2, 3].map((n) => (
+            {Array.from({ length: pageCount }, (_, i) => i + 1).map((n) => (
               <button
                 key={n}
-                onClick={() => setPage(n)}
+                onClick={() => {
+                  if (onPageChange) onPageChange(n);
+                  else setLocalPage(n);
+                }}
                 className={`w-8 h-8 rounded ${
-                  page === n ? "bg-blue-600 text-white" : "border text-gray-600"
+                  currentPage === n
+                    ? "bg-blue-600 text-white"
+                    : "border text-gray-600"
                 }`}
               >
                 {n}
               </button>
             ))}
           </div>
-
           <button
             className="px-3 py-1 border rounded text-gray-600"
-            disabled={page === 3}
-            onClick={() => setPage((p) => p + 1)}
+            disabled={currentPage === pageCount}
+            onClick={() => {
+              const next = Math.min(currentPage + 1, pageCount);
+              if (onPageChange) onPageChange(next);
+              else setLocalPage(next);
+            }}
           >
             Next
           </button>
