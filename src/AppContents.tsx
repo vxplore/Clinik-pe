@@ -18,6 +18,7 @@ import DoctorLoginPage from "./Pages/Doctor/DoctorLogin/DoctorLoginPage";
 import DoctorDashboardPage from "./Pages/Doctor/DoctorDashboard/DoctorDashboard";
 import AppointmentsPage from "./Pages/Doctor/Appointments/AppointmentsPage";
 import AddProvider from "./Pages/Provider/AddProvider";
+import EprescriptionPage from "./Pages/Doctor/Eprescription/EprescriptionPage";
 
 function AppContents() {
   return (
@@ -55,6 +56,10 @@ function AppContents() {
         
         <Route path="/doctor-dashboard" element={<DoctorDashboardPage />} />
         <Route path="/doctor-appointments" element={<AppointmentsPage />} />
+        <Route path="/e-prescription" element={<EprescriptionPage />} />
+        
+
+
         <Route path="/providers/add" element={<AddProvider />} />
       </Route>
 

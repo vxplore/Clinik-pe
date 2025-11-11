@@ -17,12 +17,18 @@ import {
   IconBell,
   IconLogout,
   IconChevronDown,
+  IconMenu2,
 } from "@tabler/icons-react";
 import useAuthStore from "../../GlobalStore/store";
 import apis from "../../APis/Api";
 // import useOrgStore from "../../GlobalStore/orgStore";
+type HeaderProps = {
+  isSmall: boolean;
+  setIsSmall: React.Dispatch<React.SetStateAction<boolean>>;
+};
+const Header: React.FC<HeaderProps> = ({ isSmall, setIsSmall }) => {
 
-const Header: React.FC = () => {
+
   const navigate = useNavigate();
   const organizationDetails = useAuthStore((s) => s.organizationDetails);
   const logout = useAuthStore((s) => s.logout);
@@ -94,18 +100,31 @@ const Header: React.FC = () => {
   return (
     <header className="flex items-center justify-between px-6 py-3 bg-white shadow-sm">
       {/* Search Input */}
+
+
       <div className="flex-1 max-w-lg">
-        <TextInput
-          placeholder="Search patients, appointments, charts..."
-          radius="md"
-          size="sm"
-          leftSection={
-            <div className="pl-2">
-              <IconSearch size={16} />
-            </div>
-          }
-          leftSectionWidth={36}
-        />
+        <div className="flex items-center gap-3">
+          <Button
+            className="!p-0 !bg-transparent !text-black rounded-full flex justify-center items-center w-auto menuBar"
+            leftSection={
+              <IconMenu2 size={24} />
+            }
+            onClick={() => setIsSmall(!isSmall)}
+          />
+          <TextInput
+            placeholder="Search patients, appointments, charts..."
+            radius="md"
+            size="sm"
+            className="w-full"
+            leftSection={
+              <div className="pl-2">
+                <IconSearch size={16} />
+              </div>
+            }
+            leftSectionWidth={36}
+          />
+        </div>
+
       </div>
 
       {/* ✅ Dropdown when needed */}

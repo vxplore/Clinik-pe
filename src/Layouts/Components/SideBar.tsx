@@ -4,8 +4,12 @@ import { Link, useNavigate } from "react-router-dom";
 import useAuthStore from "../../GlobalStore/store";
 import apis from "../../APis/Api";
 
-const SideBar = () => {
-  const [isSmall, setIsSmall] = useState(false);
+   type SideBarProps = {
+    isSmall: boolean;
+    setIsSmall: React.Dispatch<React.SetStateAction<boolean>>;
+  };
+  const SideBar: React.FC<SideBarProps> = ({ isSmall, setIsSmall }) => {
+  // const [isSmall, setIsSmall] = useState(false);
   // logout modal state
   const navigate = useNavigate();
   const logout = useAuthStore((s) => s.logout);
@@ -36,17 +40,6 @@ const SideBar = () => {
             className="logoSmall"
           />
         </Link>
-        <div className="mt-2 pl-[7px]">
-          <Button
-            className="!p-2 !bg-[rgba(255,255,255,0.05)] rounded-full flex justify-center items-center w-[40px] h-[40px] menuBar"
-            leftSection={
-              <>
-                <Image src="/images/icons/menuBar.svg" alt="" />
-              </>
-            }
-            onClick={() => setIsSmall(!isSmall)}
-          />
-        </div>
       </div>
       <nav
         className="overflow-auto p-4 sidebarNav flex flex-col gap-2"
