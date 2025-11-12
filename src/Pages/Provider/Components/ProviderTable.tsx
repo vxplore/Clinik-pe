@@ -1,12 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import { DataTable, type DataTableColumn } from "mantine-datatable";
 import { IconDots } from "@tabler/icons-react";
-import successImg from "../../../assets/success.png";
-import { Button, Select } from "@mantine/core";
-import {useNavigate} from "react-router-dom";
+import { Button, Select, Loader } from "@mantine/core";
+import { useNavigate } from "react-router-dom";
+import type { Provider } from "../../../APis/Types";
 
 type Row = {
   id: number;
+  providerUid?: string;
+  image?: string;
   avatar?: string; // optional avatar url
   name: string;
   specialty: string;
@@ -16,55 +18,48 @@ type Row = {
   status: "Verified" | "Active" | "Inactive";
 };
 
+// providers will be loaded from the API
 
-const rowsData: Row[] = [
-  {
-    id: 1,
-    name: "Dr. Ananya Patel",
-    specialty: "Dermatology",
-    centersLinked: 5,
-    fee: 800,
-    availability: "Schedule",
-    status: "Verified",
-  },
-  {
-    id: 2,
-    name: "Dr. Kapil",
-    specialty: "Cardiology",
-    centersLinked: 3,
-    fee: 500,
-    availability: "Schedule",
-    status: "Active",
-  },
-  {
-    id: 3,
-    name: "Dr. Ajij",
-    specialty: "Orthopedic",
-    centersLinked: 1,
-    fee: 700,
-    availability: "Schedule",
-    status: "Verified",
-  },
-  {
-    id: 4,
-    name: "Dr. Bikram Roy",
-    specialty: "Pediatrics",
-    centersLinked: 4,
-    fee: 600,
-    availability: "Schedule",
-    status: "Inactive",
-  },
-];
+type ProviderTableProps = {
+  providers: Provider[];
+  loading: boolean;
+  totalProviders: number;
+  page: number;
+  setPage: (page: number) => void;
+  pageSize: number;
+  pageCount: number;
+};
 
-const ProviderTable: React.FC = () => {
-    const navigate = useNavigate();
-  const [page, setPage] = useState(1);
+const ProviderTable: React.FC<ProviderTableProps> = ({
+  providers,
+  loading,
+  totalProviders,
+  page,
+  setPage,
+  pageSize,
+  pageCount,
+}) => {
+  const navigate = useNavigate();
   const [selected, setSelected] = useState<number[]>([]);
   const headerCheckboxRef = useRef<HTMLInputElement | null>(null);
-  const pageSize = 5;
+  console.log("Providers in Table:", providers);
+  // map API providers to table Row shape
+  const rows: Row[] = providers.map((p, idx) => ({
+    image: p.profile_pic,
+    id: idx + 1,
+    providerUid: p.uid,
+    avatar: (p.profile_pic as string) || undefined,
+    name: p.name || p.uid,
+    specialty: (p.specialities && p.specialities[0]?.name) || "",
+    centersLinked: 0,
+    fee: 0,
+    availability: "",
+    status:
+      p.status === "active" || p.status === "Active" ? "Active" : "Inactive",
+  }));
 
-  // pagination slice
-  const paginated = rowsData.slice((page - 1) * pageSize, page * pageSize);
+  // pagination slice (client-side slice of server data for the table)
+  const paginated = rows.slice((page - 1) * pageSize, page * pageSize);
 
   const toggleRow = (id: number) => {
     setSelected((prev) =>
@@ -79,7 +74,6 @@ const ProviderTable: React.FC = () => {
       // remove these ids
       setSelected((prev) => prev.filter((id) => !ids.includes(id)));
     } else {
-      // add visible ids
       setSelected((prev) => Array.from(new Set([...prev, ...ids])));
     }
   };
@@ -94,11 +88,9 @@ const ProviderTable: React.FC = () => {
     }
   }, [paginated, selected]);
 
-
-
-  const  HandleAdd = () => {
-    navigate('/providers/add');
-  }
+  const HandleAdd = () => {
+    navigate("/providers/add");
+  };
 
   const columns: DataTableColumn<Row>[] = [
     {
@@ -130,22 +122,21 @@ const ProviderTable: React.FC = () => {
       accessor: "name",
       title: "Name",
       render: (r) => (
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm text-gray-700">
-            {r.name
-              .split(" ")
-              .slice(0, 2)
-              .map((n) => n[0])
-              .join("")}
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <div className="text-gray-800">{r.name}</div>
-              {r.status === "Verified" ? (
-                <img src={successImg} alt="verified" className="w-5 h-5" />
-              ) : null}
-            </div>
-          </div>
+        <div
+          className="flex items-center gap-3 cursor-pointer"
+          role="button"
+          onClick={() =>
+            navigate(
+              `/availability/${encodeURIComponent(String(r.providerUid))}`
+            )
+          }
+        >
+          <img
+            src={r.image}
+            alt={r.name}
+            className="w-8 h-8 rounded-full object-cover"
+          />
+          <div className="text-gray-800 font-medium">{r.name}</div>
         </div>
       ),
     },
@@ -252,7 +243,7 @@ const ProviderTable: React.FC = () => {
           />
 
           <Button
-          onClick={HandleAdd}
+            onClick={HandleAdd}
             variant="filled"
             color="blue"
             className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-md"
@@ -264,30 +255,40 @@ const ProviderTable: React.FC = () => {
       <div className="-mx-4 h-px bg-gray-200 mb-3"></div>
 
       {/* Mantine DataTable */}
-      <DataTable
-        records={paginated}
-        columns={columns}
-        highlightOnHover
-        className="text-sm"
-        striped={false}
-        idAccessor="id"
-      />
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader />
+        </div>
+      ) : (
+        <DataTable
+          records={paginated}
+          columns={columns}
+          highlightOnHover
+          className="text-sm"
+          striped={false}
+          idAccessor="id"
+        />
+      )}
 
       {/* Pagination */}
       <div className="flex items-center justify-between text-sm text-gray-500 mt-4">
-        <div>Showing 1 to 10 of {rowsData.length} entries</div>
+        <div>
+          Showing {(page - 1) * pageSize + 1} to{" "}
+          {Math.min(page * pageSize, totalProviders)} of {totalProviders}{" "}
+          entries
+        </div>
 
         <div className="inline-flex items-center gap-2">
           <button
             className="px-3 py-1 border rounded text-gray-600"
             disabled={page === 1}
-            onClick={() => setPage((p) => p - 1)}
+            onClick={() => setPage(page - 1)}
           >
             Previous
           </button>
 
           <div className="inline-flex items-center gap-1">
-            {[1, 2, 3].map((n) => (
+            {Array.from({ length: pageCount }, (_, i) => i + 1).map((n) => (
               <button
                 key={n}
                 onClick={() => setPage(n)}
@@ -302,8 +303,8 @@ const ProviderTable: React.FC = () => {
 
           <button
             className="px-3 py-1 border rounded text-gray-600"
-            disabled={page === 3}
-            onClick={() => setPage((p) => p + 1)}
+            disabled={page === pageCount}
+            onClick={() => setPage(page + 1)}
           >
             Next
           </button>

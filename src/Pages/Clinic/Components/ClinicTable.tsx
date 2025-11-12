@@ -1,9 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import { DataTable, type DataTableColumn } from "mantine-datatable";
 import { IconDots } from "@tabler/icons-react";
-import { Button, Select } from "@mantine/core";
+import { Button, Select, Popover } from "@mantine/core";
 import { useNavigate } from "react-router-dom";
 import type { Center } from "../../../APis/Types";
+import useAuthStore from "../../../GlobalStore/store";
+import apis from "../../../APis/Api";
+import { notifications } from "@mantine/notifications";
 
 type Row = {
   id: number;
@@ -26,6 +29,8 @@ interface ClinicTableProps {
   onStatusChange: (status: string | undefined) => void;
   selectedType?: string | undefined;
   selectedStatus?: string | undefined;
+  // optional organization id from parent (used when switching center)
+  organizationId?: string | undefined;
 }
 
 const ClinicTable: React.FC<ClinicTableProps> = ({
@@ -38,10 +43,76 @@ const ClinicTable: React.FC<ClinicTableProps> = ({
   onStatusChange,
   selectedType,
   selectedStatus,
+  organizationId,
 }) => {
   const navigate = useNavigate();
   const [selected, setSelected] = useState<number[]>([]);
   const headerCheckboxRef = useRef<HTMLInputElement | null>(null);
+  const [popoverOpenId, setPopoverOpenId] = useState<string | null>(null);
+  const [switchingCenterId, setSwitchingCenterId] = useState<string | null>(
+    null
+  );
+  const setOrganizationDetails = useAuthStore((s) => s.setOrganizationDetails);
+
+  const handleMarkCenterAsCurrent = async (center: Center) => {
+    setSwitchingCenterId(center.id);
+    try {
+      const response = await apis.SwitchOrganizationcenter({
+        organization_id: organizationId,
+        center_id: center.uid,
+      });
+
+      const switchDetails = response.data.switchAccessDetails;
+
+      // Merge only center-related fields into store
+      const currentDetails = useAuthStore.getState().organizationDetails;
+      const baseDetails: import("../../../GlobalStore/store").OrganizationDetails =
+        currentDetails ?? {
+          organization_id: switchDetails.organization_id || "",
+          organization_name: switchDetails.organization_name || "",
+          user_id: "",
+          name: "",
+          email: "",
+          mobile: "",
+          user_role: "",
+          user_type: "",
+          central_account_id: switchDetails.central_account_id || "",
+          time_zone: switchDetails.time_zone || "",
+          currency: switchDetails.currency ?? null,
+          country: switchDetails.country ?? null,
+          access: switchDetails.access ?? null,
+          center_id: switchDetails.center_id ?? null,
+          image: switchDetails.image ?? null,
+        };
+
+      const updatedDetails: import("../../../GlobalStore/store").OrganizationDetails =
+        {
+          ...baseDetails,
+          center_id: switchDetails.center_id,
+        };
+
+      setOrganizationDetails(updatedDetails);
+
+      notifications.show({
+        title: "Success",
+        message: `Switched to center ${center.name}`,
+        color: "green",
+        autoClose: 3000,
+      });
+
+      setPopoverOpenId(null);
+    } catch (error) {
+      console.error("Error switching center:", error);
+      notifications.show({
+        title: "Error",
+        message: "Failed to switch center",
+        color: "red",
+        autoClose: 3000,
+      });
+    } finally {
+      setSwitchingCenterId(null);
+    }
+  };
 
   // Note: API calls are now managed by parent (ClinicList), this component is presentational
 
@@ -64,6 +135,8 @@ const ClinicTable: React.FC<ClinicTableProps> = ({
     providers: 0,
     status:
       c.status === "Active" || c.status === "active" ? "Active" : "Inactive",
+    // keep original center for actions
+    __center: c,
   }));
 
   const toggleRow = (id: number) => {
@@ -191,10 +264,44 @@ const ClinicTable: React.FC<ClinicTableProps> = ({
       accessor: "action",
       title: "Action",
       width: 100,
-      render: () => (
-        <button className="p-1 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-0 focus-visible:outline-none">
-          <IconDots className="rotate-90" />
-        </button>
+      render: (r) => (
+        <Popover
+          position="bottom"
+          withArrow
+          shadow="md"
+          opened={popoverOpenId === String(r.id)}
+          onClose={() => setPopoverOpenId(null)}
+        >
+          <Popover.Target>
+            <button
+              className="p-1 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-0 focus-visible:outline-none"
+              onClick={(e) => {
+                e.stopPropagation();
+                setPopoverOpenId(
+                  popoverOpenId === String(r.id) ? null : String(r.id)
+                );
+              }}
+            >
+              <IconDots className="rotate-90" />
+            </button>
+          </Popover.Target>
+          <Popover.Dropdown>
+            <div className="flex flex-col gap-2 min-w-max">
+              <Button
+                variant="subtle"
+                size="xs"
+                onClick={() =>
+                  handleMarkCenterAsCurrent(
+                    (r as unknown as { __center?: Center }).__center as Center
+                  )
+                }
+                loading={switchingCenterId === String(r.id)}
+              >
+                Mark as Current
+              </Button>
+            </div>
+          </Popover.Dropdown>
+        </Popover>
       ),
     },
   ];

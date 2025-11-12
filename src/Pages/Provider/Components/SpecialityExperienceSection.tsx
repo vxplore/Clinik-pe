@@ -10,7 +10,7 @@ interface SpecialityExperienceSectionProps {
     experience: string;
     experienceId: string | null;
   }>;
-  specialityOptions: string[];
+  specialityOptions: Array<{ uid: string; name: string }>;
   experienceOptions: ExperienceItem[];
   onUpdate: (
     groups: Array<{
@@ -82,11 +82,24 @@ const SpecialityExperienceSection: React.FC<
                   <div className="flex-1">
                     <Select
                       placeholder="Select specialty"
-                      data={specialityOptions}
-                      value={group.speciality}
-                      onChange={(val) =>
-                        handleSpecialityChange(index, val || "")
-                      }
+                      data={specialityOptions.map((s) => ({
+                        value: s.uid,
+                        label: s.name,
+                      }))}
+                      value={group.specialityId ?? ""}
+                      onChange={(val) => {
+                        const selected = specialityOptions.find(
+                          (s) => s.uid === val
+                        );
+                        handleSpecialityChange(
+                          index,
+                          selected ? selected.name : ""
+                        );
+                        // also set id in parent data
+                        const updated = [...specialityGroups];
+                        updated[index].specialityId = val || null;
+                        onUpdate(updated);
+                      }}
                       classNames={{
                         input:
                           "text-sm px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500",

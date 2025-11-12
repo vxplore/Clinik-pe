@@ -26,12 +26,6 @@ const DegreesUniversitySection: React.FC<DegreesUniversitySectionProps> = ({
   qualificationOptions,
   onUpdate,
 }) => {
-  const handleDegreeChange = (index: number, value: string) => {
-    const updated = [...degreeGroups];
-    updated[index].degrees = value;
-    onUpdate(updated);
-  };
-
   const handleUniversityChange = (index: number, value: string) => {
     const updated = [...degreeGroups];
     updated[index].universityInstitute = value;
@@ -73,9 +67,20 @@ const DegreesUniversitySection: React.FC<DegreesUniversitySectionProps> = ({
                 </label>
                 <Select
                   placeholder="Select degree"
-                  data={qualificationOptions.map((q) => q.name)}
-                  value={group.degrees}
-                  onChange={(val) => handleDegreeChange(index, val || "")}
+                  data={qualificationOptions.map((q) => ({
+                    value: q.uid,
+                    label: q.name,
+                  }))}
+                  value={group.degreesId ?? ""}
+                  onChange={(val) => {
+                    const selected = qualificationOptions.find(
+                      (q) => q.uid === val
+                    );
+                    const updated = [...degreeGroups];
+                    updated[index].degrees = selected ? selected.name : "";
+                    updated[index].degreesId = val || null;
+                    onUpdate(updated);
+                  }}
                   classNames={{
                     input:
                       "text-sm px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500",

@@ -19,6 +19,7 @@ import {
   IconChevronDown,
 } from "@tabler/icons-react";
 import useAuthStore from "../../GlobalStore/store";
+import useDropdownStore from "../../GlobalStore/useDropdownStore";
 import apis from "../../APis/Api";
 // import useOrgStore from "../../GlobalStore/orgStore";
 
@@ -26,6 +27,7 @@ const Header: React.FC = () => {
   const navigate = useNavigate();
   const organizationDetails = useAuthStore((s) => s.organizationDetails);
   const logout = useAuthStore((s) => s.logout);
+  const setSelectedCenter = useDropdownStore((s) => s.setSelectedCenter);
 
   const name = organizationDetails?.name ?? "";
   const image = organizationDetails?.image ?? undefined;
@@ -40,29 +42,50 @@ const Header: React.FC = () => {
   const { pathname } = useLocation();
 
   // ✅ URLs where dropdown should appear
-  const pagesWithDropdown = ["/clinic-details", "/providers"];
+  const pagesWithDropdown = ["/clinic-details", "/providers", "/availability/add"];
 
   const shouldShowDropdown = pagesWithDropdown.some((p) =>
     pathname.startsWith(p)
   );
 
-  //get dropdown options
+  const [orgValue, setOrgValue] = useState<string | null>(null);
+  const [centersOptions, setCentersOptions] = useState<
+    { label: string; value: string }[]
+  >([]);
+  const [isCentersLoading, setIsCentersLoading] = useState(false);
+
+  // get dropdown options
   useEffect(() => {
     if (!shouldShowDropdown) return;
 
-    // TODO: Implement SwitchClinic API when available
-    // const fetchDropdownOptions = async () => {
-    //   const response = await apis.SwitchClinic();
-    //   console.log("Dropdown options:", response);
-    // };
-    // fetchDropdownOptions();
-  }, [shouldShowDropdown]);
+    const orgId = organizationDetails?.organization_id;
+    if (!orgId) return;
 
-  const [orgValue, setOrgValue] = useState<string | null>(null);
-  const dummyOrgs = [
-    { label: "Organization A", value: "1" },
-    { label: "Organization B", value: "2" },
-  ];
+    const fetchCenters = async () => {
+      setIsCentersLoading(true);
+      try {
+        const response = await apis.getOrganizationCenters(orgId);
+        const centers = response?.data?.center || [];
+
+        const options = centers.map((c) => ({ label: c.name, value: c.uid }));
+        setCentersOptions(options);
+
+        // No default selection - user must choose explicitly
+        // (Removed: set default value from store or first center)
+
+        console.log(
+          "Organization centers (api.getOrganizationCenters):",
+          response
+        );
+      } catch (error) {
+        console.error("Failed to fetch organization centers:", error);
+      } finally {
+        setIsCentersLoading(false);
+      }
+    };
+
+    fetchCenters();
+  }, [shouldShowDropdown, organizationDetails?.organization_id]);
 
   // Logout confirmation modal state
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
@@ -85,6 +108,7 @@ const Header: React.FC = () => {
       navigate("/login");
     } catch (error) {
       console.error("Logout error:", error);
+      setIsCentersLoading(true);
     } finally {
       setIsLoggingOut(false);
       setIsLogoutModalOpen(false);
@@ -121,9 +145,24 @@ const Header: React.FC = () => {
                   "border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-0 focus-visible:outline-none",
               }}
               value={orgValue}
-              placeholder="Select organization"
-              data={dummyOrgs}
-              onChange={(value) => setOrgValue(value)}
+              placeholder="Select Center"
+              data={centersOptions}
+              searchable
+              onChange={(value) => {
+                setOrgValue(value);
+                // Find the selected center and save to store
+                if (value) {
+                  const selected = centersOptions.find(
+                    (opt) => opt.value === value
+                  );
+                  if (selected) {
+                    setSelectedCenter({
+                      center_id: selected.value,
+                      center_name: selected.label,
+                    });
+                  }
+                }
+              }}
             />
           </div>
         )}

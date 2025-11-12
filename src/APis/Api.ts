@@ -1,10 +1,36 @@
-import type { OrganizationAddPayloads, OrganizationLoginRequestPayload, OrganizationRegistrationPayload, OrganizationSuccessResponse, ResendOtpPayload, ResendOtpResponse, VerifyOtpPayload, VerifyOtpResponse, AccessToken, OrganizationAddInside, OrganizationAddInsideResponse, OrganizationListResponse, ClinicRequestPayload, CenterRequestPayload, CreateCenterResponse, CenterListResponse, ExperienceResponse, QualificationResponse, SpecialityResponse, FileUploadResponse, ProviderDetails } from "./Types";
+import type {
+  OrganizationAddPayloads,
+  OrganizationLoginRequestPayload,
+  OrganizationRegistrationPayload,
+  OrganizationSuccessResponse,
+  ResendOtpPayload,
+  ResendOtpResponse,
+  VerifyOtpPayload,
+  VerifyOtpResponse,
+  AccessToken,
+  OrganizationAddInside,
+  OrganizationAddInsideResponse,
+  OrganizationListResponse,
+  CenterRequestPayload,
+  CreateCenterResponse,
+  CenterListResponse,
+  ExperienceResponse,
+  QualificationResponse,
+  SpecialityResponse,
+  FileUploadResponse,
+  ProviderDetails,
+  ProviderListResponse,
+  SwitchOrganizationResponse,
+  DoctorAvailabilityResponse,
+  DoctorAvailabilityInput,
+  AddDoctorAvailabilityResponse,
+} from "./Types";
 import apiAgent from "./apiAgents";
 
 class Apis {
   async RegisterOrganization(
     payload: OrganizationRegistrationPayload
-  ): Promise<| OrganizationSuccessResponse> {
+  ): Promise<OrganizationSuccessResponse> {
     const response = await apiAgent
       .path("/organizations/register")
       .method("POST")
@@ -84,16 +110,21 @@ class Apis {
     return response.data as ResendOtpResponse;
   }
 
-  //switch accesss clinic // later needed
-  // async SwitchClinic(
-  // ): Promise<AccessToken> {
-  //   const response = await apiAgent
-  //     .path("/organizations/switch-clinic")
-  //     .method("POST")
-  //     .execute();
 
-  //   return response.data as AccessToken;
-  // }
+  async SwitchOrganizationcenter(
+    payload: {
+      organization_id?: string;
+      center_id?: string;
+    }
+  ): Promise<SwitchOrganizationResponse> {
+    const response = await apiAgent
+      .path("/organizations/switch-organization-center")
+      .method("POST")
+      .json(payload)
+      .execute();
+
+    return response.data as SwitchOrganizationResponse;
+  }
 
   async AddOrganizationFromInside(
     payload: OrganizationAddInside
@@ -219,7 +250,7 @@ class Apis {
     payload: ProviderDetails
   ): Promise<OrganizationSuccessResponse> {
     const response = await apiAgent
-      .path(`/organizations/${organization_id}/doctor`)
+      .path(`/organizations/${organization_id}/doctors`)
       .method("POST")
       .json(payload)
       .execute();
@@ -239,6 +270,61 @@ class Apis {
       .json(payload)
       .execute();
   }
+
+  async GetAllProviders(
+    configuration: string,
+    organization_id: string,
+    center_id: string,
+    search?: string,
+    pageNumber?: number,
+    pageSize?: number
+  ): Promise<ProviderListResponse> {
+    const response = await apiAgent
+      .path(`/organizations/${organization_id}/centers/${center_id}/doctors`)
+      .method("GET")
+      .query({ search, pageNumber, pageSize })
+      .json({ configuration })
+      .execute();
+    return response.data as ProviderListResponse;
+  }
+
+  async getOrganizationCenters(
+    organization_id: string
+  ): Promise<CenterListResponse> {
+    const response = await apiAgent
+      .path(`/organizations/${organization_id}/centers`)
+      .method("GET")
+      .execute();
+    return response.data as CenterListResponse;
+  }
+
+
+
+  async GetProviderAvailabilities(
+    provider_id: string): Promise<DoctorAvailabilityResponse> {
+    const response = await apiAgent
+      .path(`/doctors/${provider_id}/availabilities`)
+      .method("GET")
+      .execute();
+    return response.data as DoctorAvailabilityResponse;
+  }
+
+
+
+  async AddDoctorAvailability(
+    provider_id: string,
+    payload: DoctorAvailabilityInput[]
+  ): Promise<AddDoctorAvailabilityResponse> {
+    const response = await apiAgent
+      .path(`/doctors/${provider_id}/availabilities`)
+      .method("POST")
+      .json(payload)
+      .execute();
+    return response.data as AddDoctorAvailabilityResponse;
+  }
+
+
+
 
 
 }

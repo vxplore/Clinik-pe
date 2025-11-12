@@ -11,6 +11,7 @@ import DegreesUniversitySection from "./Components/DegreesUniversitySection";
 import AddSpecialityModal from "./Components/AddSpecialityModal";
 import apis from "../../APis/Api";
 import useAuthStore from "../../GlobalStore/store";
+import useDropdownStore from "../../GlobalStore/useDropdownStore";
 import type {
   ExperienceItem,
   QualificationItem,
@@ -25,6 +26,9 @@ const AddProvider = () => {
     (state) => state.organizationDetails
   );
 
+  // Get selected center from dropdown store
+  const selectedCenter = useDropdownStore((state) => state.selectedCenter);
+
   // Lookup options from APIs
   const [experienceOptions, setExperienceOptions] = useState<ExperienceItem[]>(
     []
@@ -32,7 +36,9 @@ const AddProvider = () => {
   const [qualificationOptions, setQualificationOptions] = useState<
     QualificationItem[]
   >([]);
-  const [specialityOptions, setSpecialityOptions] = useState<string[]>([]);
+  const [specialityOptions, setSpecialityOptions] = useState<
+    Array<{ uid: string; name: string }>
+  >([]);
 
   // Fetch lookup data on mount
   useEffect(() => {
@@ -50,7 +56,8 @@ const AddProvider = () => {
 
         setExperienceOptions(expResp.data);
         setQualificationOptions(qualResp.data);
-        setSpecialityOptions(specResp.data.map((s: SpecialityItem) => s.name));
+        // keep uid + name so we can send correct ids in payload
+        setSpecialityOptions(specResp.data as SpecialityItem[]);
       } catch (error) {
         console.error("Error fetching lookups:", error);
       }
@@ -173,8 +180,15 @@ const AddProvider = () => {
 
   const handleAddSpeciality = () => {
     const trimmedSpeciality = newSpeciality.trim();
-    if (trimmedSpeciality && !specialityOptions.includes(trimmedSpeciality)) {
-      setSpecialityOptions([...specialityOptions, trimmedSpeciality]);
+    if (
+      trimmedSpeciality &&
+      !specialityOptions.some((s) => s.name === trimmedSpeciality)
+    ) {
+      // Add as a temporary item with empty uid; backend can resolve or create if needed
+      setSpecialityOptions([
+        ...specialityOptions,
+        { uid: "", name: trimmedSpeciality },
+      ]);
       setNewSpeciality("");
       setIsModalOpen(false);
     }
@@ -226,6 +240,7 @@ const AddProvider = () => {
       contact_mobile: form.phoneNumber.trim(),
       image_path: uploadPath,
       time_zone: organizationDetails?.time_zone || "Asia/Kolkata",
+      center_id: selectedCenter?.center_id || "",
       doctorSpecialty,
       doctorQualification,
       doctorExperiences,

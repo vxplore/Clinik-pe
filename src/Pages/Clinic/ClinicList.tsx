@@ -151,6 +151,7 @@ const ClinicList = () => {
         onStatusChange={setStatusFilter}
         selectedType={typeFilter}
         selectedStatus={statusFilter}
+        organizationId={organizationId}
       />
     </div>
   );

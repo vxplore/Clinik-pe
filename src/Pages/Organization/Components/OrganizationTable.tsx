@@ -1,9 +1,12 @@
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import { DataTable, type DataTableColumn } from "mantine-datatable";
 import { IconDots } from "@tabler/icons-react";
-import { Button, Select } from "@mantine/core";
+import { Button, Select, Popover } from "@mantine/core";
 import { useNavigate } from "react-router-dom";
 import type { Organization } from "../../../APis/Types";
+import useAuthStore from "../../../GlobalStore/store";
+import apis from "../../../APis/Api";
+import { notifications } from "@mantine/notifications";
 
 const OrganizationTable: React.FC<{
   orgData?: Organization[];
@@ -27,10 +30,13 @@ const OrganizationTable: React.FC<{
   selectedStatus,
 }) => {
   const navigate = useNavigate();
+  const setOrganizationDetails = useAuthStore((s) => s.setOrganizationDetails);
   console.log("OrganizationTable rendered", orgData);
 
   const [localPage, setLocalPage] = useState(1);
   const [selected, setSelected] = useState<string[]>([]);
+  const [switchingOrgId, setSwitchingOrgId] = useState<string | null>(null);
+  const [popoverOpenId, setPopoverOpenId] = useState<string | null>(null);
   const headerCheckboxRef = useRef<HTMLInputElement | null>(null);
   const pageSize = parentPageSize ?? 5; // server page size
   console.log("orgData:", orgData);
@@ -60,6 +66,76 @@ const OrganizationTable: React.FC<{
 
   const handleAdd = () => {
     navigate("/organization/add");
+  };
+
+  const handleMarkAsCurrent = async (org: Organization) => {
+    setSwitchingOrgId(org.id);
+    try {
+      const response = await apis.SwitchOrganizationcenter({
+        organization_id: org.uid, // Send the organization uid as organization_id
+      });
+
+      console.log("Switch Organization Response:", response);
+
+      // Update only organization-related fields in the auth store (do NOT modify auth tokens)
+      const switchDetails = response.data.switchAccessDetails;
+      // Read current details and merge organization-specific fields to avoid overwriting user identity
+      const currentDetails = useAuthStore.getState().organizationDetails;
+      // Ensure we have all required fields when updating the persisted store.
+      const baseDetails: import("../../../GlobalStore/store").OrganizationDetails =
+        currentDetails ?? {
+          organization_id: switchDetails.organization_id || "",
+          organization_name: switchDetails.organization_name || "",
+          user_id: "",
+          name: "",
+          email: "",
+          mobile: "",
+          user_role: "",
+          user_type: "",
+          central_account_id: switchDetails.central_account_id || "",
+          time_zone: switchDetails.time_zone || "",
+          currency: switchDetails.currency ?? null,
+          country: switchDetails.country ?? null,
+          access: switchDetails.access ?? null,
+          center_id: switchDetails.center_id ?? null,
+          image: switchDetails.image ?? null,
+        };
+
+      const updatedDetails: import("../../../GlobalStore/store").OrganizationDetails =
+        {
+          ...baseDetails,
+          organization_id: switchDetails.organization_id,
+          organization_name: switchDetails.organization_name,
+          central_account_id: switchDetails.central_account_id,
+          time_zone: switchDetails.time_zone,
+          currency: switchDetails.currency,
+          country: switchDetails.country,
+          access: switchDetails.access,
+          center_id: switchDetails.center_id,
+          image: switchDetails.image,
+        };
+
+      setOrganizationDetails(updatedDetails);
+
+      notifications.show({
+        title: "Success",
+        message: `Switched to ${org.name}`,
+        color: "green",
+        autoClose: 3000,
+      });
+
+      setPopoverOpenId(null);
+    } catch (error) {
+      console.error("Error switching organization:", error);
+      notifications.show({
+        title: "Error",
+        message: "Failed to switch organization",
+        color: "red",
+        autoClose: 3000,
+      });
+    } finally {
+      setSwitchingOrgId(null);
+    }
   };
   useEffect(() => {
     const ids = records.map((r) => r.id);
@@ -141,10 +217,39 @@ const OrganizationTable: React.FC<{
       accessor: "action",
       title: "Action",
       width: 100,
-      render: () => (
-        <button className="p-1 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-0 focus-visible:outline-none">
-          <IconDots className="rotate-90" />
-        </button>
+      render: (org) => (
+        <Popover
+          position="bottom"
+          withArrow
+          shadow="md"
+          opened={popoverOpenId === org.id}
+          onClose={() => setPopoverOpenId(null)}
+        >
+          <Popover.Target>
+            <button
+              className="p-1 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-0 focus-visible:outline-none"
+              onClick={(e) => {
+                // toggle popover for this row
+                e.stopPropagation();
+                setPopoverOpenId(popoverOpenId === org.id ? null : org.id);
+              }}
+            >
+              <IconDots className="rotate-90" />
+            </button>
+          </Popover.Target>
+          <Popover.Dropdown>
+            <div className="flex flex-col gap-2 min-w-max">
+              <Button
+                variant="subtle"
+                size="xs"
+                onClick={() => handleMarkAsCurrent(org)}
+                loading={switchingOrgId === org.id}
+              >
+                Mark as Current
+              </Button>
+            </div>
+          </Popover.Dropdown>
+        </Popover>
       ),
     },
   ];

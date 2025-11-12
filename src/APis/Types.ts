@@ -338,6 +338,146 @@ export type ProviderDetails = {
 };
 
 
+export interface ProviderListResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    providers: Provider[];
+    stats: Stats;
+    pagination: Pagination;
+  };
+}
+
+export interface Provider {
+  uid: string;
+  profile_pic: string;
+  name: string;
+  email: string;
+  mobile: string;
+  gender: string;
+  dob: string;
+  summary: string;
+  status: string;
+  registration: string;
+  specialities: Speciality[];
+}
+
+export interface Speciality {
+  uid: string;
+  name: string;
+}
+
+export interface Stats {
+  total: string;
+  active: string;
+  inactive: number;
+  filteredTotal: string;
+}
+
+export interface Pagination {
+  pageNumber: number;
+  pageSize: number;
+  totalRecords: number;
+  pageCount: number;
+}
+
+
+export interface SwitchOrganizationResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    last_organization_uid: string;
+    switchAccessDetails: {
+      organization_id: string;
+      organization_name: string;
+      user_id: string;
+      center_name: string;
+      center_id: string;
+      central_account_id: string;
+      user_type: string;
+      name: string;
+      email: string;
+      mobile: string;
+      time_zone: string;
+      currency: string | null;
+      country: string | null;
+      access: any | null;
+      image: string | null;
+      iat: number;
+      exp: number;
+    };
+  };
+}
+
+export interface DoctorAvailabilityResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    doctorProfile: {
+      uid: string;
+      profile_pic: string;
+      name: string;
+      email: string | null;
+      mobile: string | null;
+      gender: string;
+      dob: string | null;
+      summary: string;
+      registration: string | null;
+      specialities: any[]; // You can replace `any` with a proper type if known
+      experience: any[];   // Same here
+    };
+    availabilities: any[]; // Define structure when known
+    pagination: {
+      pageNumber: number;
+      pageSize: number;
+      totalRecords: number;
+      pageCount: number;
+    };
+  };
+}
+
+
+export type DoctorAvailability = {
+  uid: string;
+  center_id: string;
+  doctor_id: string;
+  specialization_id: string;
+  organization_id: string | null;
+  appointment_type: string;
+  time_slot_interval: string;
+  week_days: string[];
+  start_time: string;
+  end_time: string;
+  status: string;
+};
+
+export type DoctorAvailabilityInput = {
+  week_days: string[];
+  times: string[];
+  time_slot_interval: string;
+  appointment_type: string;
+  speciality_id: string;
+  center_id: string;
+};
+
+export type AddDoctorAvailabilityResponse = {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    doctorUid: string;
+  };
+};
+
+
+
+
+
+
+
 
 
 

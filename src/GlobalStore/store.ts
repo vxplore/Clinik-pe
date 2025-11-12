@@ -49,7 +49,7 @@ const useAuthStore = create<AuthState>()(
                 try {
                     localStorage.removeItem("auth-storage");
                 } catch {
-                    // ignore if localStorage is not available
+                   console.log("Failed to access localStorage during logout.")
                 }
             },
 

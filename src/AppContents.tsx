@@ -18,6 +18,8 @@ import DoctorLoginPage from "./Pages/Doctor/DoctorLogin/DoctorLoginPage";
 import DoctorDashboardPage from "./Pages/Doctor/DoctorDashboard/DoctorDashboard";
 import AppointmentsPage from "./Pages/Doctor/Appointments/AppointmentsPage";
 import AddProvider from "./Pages/Provider/AddProvider";
+import ProviderAvailability from "./Pages/Availability/ProviderAvailability";
+import AddProviderAvailability from "./Pages/Availability/AddProviderAvailability";
 
 function AppContents() {
   return (
@@ -47,18 +49,27 @@ function AppContents() {
           </PrivateRoute>
         }
       >
+        <Route
+          path="/availability/:providerUid"
+          element={<ProviderAvailability />}
+        />
+        <Route
+          path="/availability/add/:providerUid"
+          element={<AddProviderAvailability />}
+        />
+
         <Route path="/organization" element={<OrganizationList />} />
         <Route path="/organization/add" element={<AddOrganization />} />
         <Route path="/centers" element={<ClinicList />} />
         <Route path="/centers/add" element={<AddCenter />} />
         <Route path="/providers" element={<ProviderList />} />
-        
+
         <Route path="/doctor-dashboard" element={<DoctorDashboardPage />} />
         <Route path="/doctor-appointments" element={<AppointmentsPage />} />
         <Route path="/providers/add" element={<AddProvider />} />
       </Route>
 
-     <Route path="/doctor-login" element={<DoctorLoginPage />} />
+      <Route path="/doctor-login" element={<DoctorLoginPage />} />
     </Routes>
   );
 }
