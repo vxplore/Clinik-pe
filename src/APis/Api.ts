@@ -26,6 +26,9 @@ import type {
   AddDoctorAvailabilityResponse,
   PaymentSettingsPayload,
   SyncSettingsResponse,
+  CreateDoctorFeeResponse,
+  DoctorCommissionPayload,
+  FeeManagementResponse,
 } from "./Types";
 import apiAgent from "./apiAgents";
 
@@ -302,10 +305,25 @@ class Apis {
 
 
 
+  /**
+   * Fetch availabilities for one or multiple providers.
+   * provider_idOrUids can be:
+   *  - a single provider id string (e.g. "dEmpvHK5")
+   *  - an array of provider ids (e.g. ["dEmpvHK5","XvQ7ufZV"]) — will be joined and encoded
+   *  - the string "all" to fetch all providers
+   */
   async GetProviderAvailabilities(
-    provider_id: string): Promise<DoctorAvailabilityResponse> {
+    organization_id: string,
+    center_id: string,
+    provider_idOrUids: string | string[]
+  ): Promise<DoctorAvailabilityResponse> {
+    // If caller passed an array of uids, join with comma and encode once.
+    const providerPath = Array.isArray(provider_idOrUids)
+      ? encodeURIComponent(provider_idOrUids.join(","))
+      : encodeURIComponent(provider_idOrUids);
+
     const response = await apiAgent
-      .path(`/doctors/${provider_id}/availabilities`)
+      .path(`/organizations/${organization_id}/centers/${center_id}/doctors/${providerPath}/availabilities`)
       .method("GET")
       .execute();
     return response.data as DoctorAvailabilityResponse;
@@ -314,11 +332,13 @@ class Apis {
 
 
   async AddDoctorAvailability(
+    organization_id: string,
+    center_id: string,
     provider_id: string,
-    payload: DoctorAvailabilityInput[]
+    payload: DoctorAvailabilityInput
   ): Promise<AddDoctorAvailabilityResponse> {
     const response = await apiAgent
-      .path(`/doctors/${provider_id}/availabilities`)
+      .path(`/organizations/${organization_id}/centers/${center_id}/doctors/${provider_id}/availabilities`)
       .method("POST")
       .json(payload)
       .execute();
@@ -363,6 +383,33 @@ class Apis {
 
     return response.data as PaymentSettingsPayload;
   }
+
+  async AddFee(
+    organization_id: string,
+    center_id: string,
+    payload: DoctorCommissionPayload
+  ): Promise<CreateDoctorFeeResponse> {
+    const response = await apiAgent
+      .path(`/organizations/${organization_id}/centers/${center_id}/doctors-fee`)
+      .method("POST")
+      .json(payload)
+      .execute();
+    return response.data as CreateDoctorFeeResponse;
+  }
+  async GetFees(
+    organization_id: string,
+    center_id: string,
+    pageSize?: number,
+    pageNumber?: number
+  ): Promise<FeeManagementResponse> {
+    const response = await apiAgent
+      .path(`/organizations/${organization_id}/centers/${center_id}/doctors-fee`)
+      .method("GET")
+      .query({ pageSize, pageNumber })
+      .execute();
+    return response.data as FeeManagementResponse;
+  }
+
 
 
 

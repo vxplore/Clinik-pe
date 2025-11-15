@@ -156,13 +156,13 @@ const FeeTable: React.FC<FeeTableProps> = ({
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
         <div className="flex items-center gap-3">
-          <Select
+          {/* <Select
             placeholder="All Providers"
             data={[...new Set(data.map((d) => d.provider))]}
             classNames={{
               input: "border rounded-md px-3 py-2 text-sm bg-white",
             }}
-          />
+          /> */}
           <Button onClick={onAdd} size="sm">
             + Add Fee
           </Button>

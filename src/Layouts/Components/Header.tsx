@@ -34,6 +34,9 @@ const Header: React.FC<HeaderProps> = ({ isSmall, setIsSmall }) => {
   const setOrganizationDetails = useAuthStore((s) => s.setOrganizationDetails);
   const logout = useAuthStore((s) => s.logout);
   const setSelectedCenter = useDropdownStore((s) => s.setSelectedCenter);
+  const centersRefreshCounter = useDropdownStore(
+    (s) => s.centersRefreshCounter
+  );
 
   const name = organizationDetails?.name ?? "";
   const image = organizationDetails?.image ?? undefined;
@@ -89,7 +92,11 @@ const Header: React.FC<HeaderProps> = ({ isSmall, setIsSmall }) => {
     };
 
     fetchCenters();
-  }, [shouldShowDropdown, organizationDetails?.organization_id]);
+  }, [
+    shouldShowDropdown,
+    organizationDetails?.organization_id,
+    centersRefreshCounter,
+  ]);
 
   // when centers load, restore previously selected center from localStorage or dropdown store
   useEffect(() => {

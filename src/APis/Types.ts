@@ -454,48 +454,120 @@ export type DoctorAvailability = {
   status: string;
 };
 
-export type DoctorAvailabilityInput = {
-  week_days: string[];
-  times: string[];
-  time_slot_interval: string;
-  appointment_type: string;
-  speciality_id: string;
-  center_id: string;
+export type TimeRangeInput = {
+  start: string;
+  end: string;
+  wait_time?: string; // optional wait time in minutes as string
+  time_slot_interval: string; // minutes as string
 };
 
-export type AddDoctorAvailabilityResponse = {
+export type AvailabilityInputItem = {
+  week_days: string[]; // single string entry like ["Wednesday , Friday"]
+  time_ranges: TimeRangeInput[];
+  appointment_type: string;
+  speciality_id?: string;
+};
+
+export type DoctorAvailabilityInput = {
+  availabilities: AvailabilityInputItem[];
+  speciality_id?: string;
+};
+
+export type DoctorAvailabilityCreateResponse = {
   success: boolean;
   httpStatus: number;
   message: string;
   data: {
+    saved_availabilities: string[];
     doctorUid: string;
   };
 };
 
 
-export  type PaymentSetting = {
+
+export type PaymentSetting = {
   key:
-    | "payment.cash"
-    | "payment.online"
-    | "payment.bank_account_name"
-    | "payment.bank_account_type"
-    | "payment.bank_account_number"
-    | "payment.ifsc_code"
-    | "payment.bank_name"
-    | "payment.branch_name";
+  | "payment.cash"
+  | "payment.online"
+  | "payment.bank_account_name"
+  | "payment.bank_account_type"
+  | "payment.bank_account_number"
+  | "payment.ifsc_code"
+  | "payment.bank_name"
+  | "payment.branch_name";
   value: string | boolean;
 };
 
- export type PaymentSettingsPayload = {
+export type PaymentSettingsPayload = {
   central_account_id: string;
   settings: PaymentSetting[];
 };
-export  type SyncSettingsResponse = {
+export type SyncSettingsResponse = {
   success: boolean;
   httpStatus: number;
   message: string;
   data: null;
 };
+
+export type CreateDoctorFeeResponse = {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    feeUid: string;
+  };
+};
+
+
+export type DoctorCommissionPayload = {
+  doctor_id: string;
+  appointment_type: string;
+  fee_amount: string;
+  commission_type: string;
+  commission: string;
+};
+
+
+export interface FeeManagementResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: FeeManagementData;
+}
+
+export interface FeeManagementData {
+  provider_fee_list: ProviderFee[];
+  pagination: Pagination;
+}
+
+export interface ProviderFee {
+  id: string;
+  uid: string;
+  central_account_id: string;
+  organization_id: string;
+  center_id: string;
+  doctor_id: string;
+  appointment_type: string;
+  fee: string;
+  commission_type: "%" | "₹" | string;
+  commission: string;
+  created_at: string;
+  created_by: string;
+  updated_at: string | null;
+  updated_by: string | null;
+  doctor_name: string;
+  doctor_email: string | null;
+  doctor_mobile: string | null;
+}
+
+export interface Pagination {
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  totalRecords: number;
+}
+
+
 
 
 

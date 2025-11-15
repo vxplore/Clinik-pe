@@ -4,11 +4,11 @@ import { Link, useNavigate } from "react-router-dom";
 import useAuthStore from "../../GlobalStore/store";
 import apis from "../../APis/Api";
 
-   type SideBarProps = {
-    isSmall: boolean;
-    setIsSmall: React.Dispatch<React.SetStateAction<boolean>>;
-  };
-  const SideBar: React.FC<SideBarProps> = ({ isSmall, setIsSmall }) => {
+type SideBarProps = {
+  isSmall: boolean;
+  setIsSmall: React.Dispatch<React.SetStateAction<boolean>>;
+};
+const SideBar: React.FC<SideBarProps> = ({ isSmall, setIsSmall }) => {
   // const [isSmall, setIsSmall] = useState(false);
   // logout modal state
   const navigate = useNavigate();
@@ -60,8 +60,24 @@ import apis from "../../APis/Api";
               />
             </>
           }
-          href="#"
-          label="Dashboard"
+          component={Link}
+          to="/organization"
+          label="Organizations"
+        />
+        <NavLink
+          leftSection={
+            <>
+              <Image
+                src="/images/icons/locations.svg"
+                height="26px"
+                width="26px"
+                className="h-[26px] w-[26px]"
+              />
+            </>
+          }
+          component={Link}
+          to="/centers"
+          label="Centers"
         />
         <NavLink
           leftSection={
@@ -74,8 +90,24 @@ import apis from "../../APis/Api";
               />
             </>
           }
-          href="#"
+          component={Link}
+          to="/doctor-appointments"
           label="Appointments"
+        />
+        <NavLink
+          leftSection={
+            <>
+              <Image
+                src="/images/icons/availability.svg"
+                height="26px"
+                width="26px"
+                className="h-[26px] w-[26px]"
+              />
+            </>
+          }
+          component={Link}
+          to="/availability"
+          label="Availability"
         />
         <NavLink
           leftSection={
@@ -88,7 +120,7 @@ import apis from "../../APis/Api";
               />
             </>
           }
-          href="#"
+          href="#" // TODO: add route when available
           label="Lab Test Request"
         />
         <NavLink
@@ -102,7 +134,7 @@ import apis from "../../APis/Api";
               />
             </>
           }
-          href="#"
+          href="#" // TODO: add route when available
           label="Patients"
         />
         <NavLink
@@ -116,7 +148,7 @@ import apis from "../../APis/Api";
               />
             </>
           }
-          href="#"
+          href="#" // TODO: add route when available
           label="Charting"
         />
         <NavLink
@@ -130,7 +162,7 @@ import apis from "../../APis/Api";
               />
             </>
           }
-          href="#"
+          href="#" // TODO: add route when available
           label="Diagnostic"
         />
         <NavLink
@@ -144,7 +176,7 @@ import apis from "../../APis/Api";
               />
             </>
           }
-          href="#"
+          href="#" // TODO: add route when available
           label="Reports"
         />
         <NavLink
@@ -158,7 +190,8 @@ import apis from "../../APis/Api";
               />
             </>
           }
-          href="#"
+          component={Link}
+          to="/payments"
           label="Payments"
         />
         <NavLink
@@ -172,8 +205,39 @@ import apis from "../../APis/Api";
               />
             </>
           }
-          href="#"
-          label="Provider Payout"
+          component={Link}
+          to="/providers"
+          label="Providers"
+        />
+        <NavLink
+          leftSection={
+            <>
+              <Image
+                src="/images/icons/doctor-dashboard.svg"
+                height="26px"
+                width="26px"
+                className="h-[26px] w-[26px]"
+              />
+            </>
+          }
+          component={Link}
+          to="/doctor-dashboard"
+          label="Doctor Dashboard"
+        />
+        <NavLink
+          leftSection={
+            <>
+              <Image
+                src="/images/icons/eprescription.svg"
+                height="26px"
+                width="26px"
+                className="h-[26px] w-[26px]"
+              />
+            </>
+          }
+          component={Link}
+          to="/e-prescription"
+          label="E-prescription"
         />
         <NavLink
           leftSection={
@@ -186,15 +250,23 @@ import apis from "../../APis/Api";
               />
             </>
           }
-          href="#"
+          href="#" // Parent has children; using children links instead
           label="Settings"
         >
-          <NavLink label="Center" href="#" />
-          <NavLink label="Provider" href="#" />
-          <NavLink label="Users" href="#" />
-          <NavLink label="Payments" href="#" />
-          <NavLink label="Fee Management" href="#" />
-          <NavLink label="General Setting" href="#" />
+          <NavLink label="Center" component={Link} to="/centers" />
+          <NavLink label="Provider" component={Link} to="/providers" />
+          <NavLink label="Users" component={Link} to="/organization" />
+          <NavLink label="Payments" component={Link} to="/payments" />
+          <NavLink
+            label="Fee Management"
+            component={Link}
+            to="/fee-management"
+          />
+          <NavLink
+            label="General Setting"
+            component={Link}
+            to="/general-settings"
+          />
         </NavLink>
       </nav>
       <div className="sidebarFooter mt-auto p-4">
@@ -246,13 +318,10 @@ import apis from "../../APis/Api";
               onClick={async () => {
                 setIsLoggingOut(true);
                 try {
-                  
                   logout();
 
-                  
                   await apis.Logout({ isLocalStorageClear: true });
 
-                  
                   navigate("/login");
                 } catch (error) {
                   console.error("Logout error:", error);

@@ -2,14 +2,15 @@ import axios, {
     type AxiosInstance,
     type AxiosRequestConfig,
     type Method,
+    type AxiosRequestHeaders,
 } from "axios";
 
-// type ApiResponse<T> = {
-//     data: T | null;
-//     status: number;
-//     statusText: string;
-//     headers: Record<string, string>;
-// };
+type ApiResponse<T> = {
+    data: T | null;
+    status: number;
+    statusText: string;
+    headers: Record<string, string>;
+};
 
 class ApiAgent {
     private readonly apiAgent: AxiosInstance;
@@ -41,6 +42,33 @@ class ApiAgent {
             },
             (error) => {
                 //console.error("[Error]", error);
+                if (axios.isAxiosError(error)) {
+                    const status = error.response?.status;
+
+                    // Handle Unauthorized globally: clear auth and redirect to login
+                    if (status === 401) {
+                        try {
+                            // Clear known auth keys (app may use these)
+                            localStorage.removeItem("extendedvaluekey");
+                            localStorage.removeItem("selected-center");
+                            localStorage.removeItem("auth-storage");
+                        } catch {
+                            // ignore local storage issues
+                        }
+
+                        try {
+                            sessionStorage.clear();
+                        } catch {
+                            // ignore
+                        }
+
+                        // Avoid redirect loop if already on login
+                        if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+                            window.location.href = "/login";
+                        }
+                    }
+                }
+
                 return Promise.reject(error);
             }
         );
@@ -56,7 +84,7 @@ class ApiAgent {
         return this;
     }
 
-    json(data: any): ApiAgent {
+    json(data: unknown): ApiAgent {
         this.config.data = data;
         this.config.headers = {
             ...this.config.headers,
@@ -65,17 +93,16 @@ class ApiAgent {
         return this;
     }
 
-    // Attach FormData payload and ensure Content-Type is not forced so the
-    // browser can set the correct multipart boundary header.
+
     form(data: FormData): ApiAgent {
         this.config.data = data;
-        const headers = { ...(this.config.headers || {}) } as Record<string, any>;
+        const headers = { ...(this.config.headers || {}) } as AxiosRequestHeaders;
         if (headers["Content-Type"]) delete headers["Content-Type"];
         this.config.headers = headers;
         return this;
     }
 
-    query(params: Record<string, any>): ApiAgent {
+    query(params: Record<string, unknown>): ApiAgent {
         this.config.params = params;
         return this;
     }
@@ -88,10 +115,12 @@ class ApiAgent {
         return this;
     }
 
-    cleanHeaders(headers: Record<string, any>): Record<string, string> {
+    cleanHeaders(headers: unknown): Record<string, string> {
         const result: Record<string, string> = {};
-        for (const key in headers) {
-            const value = headers[key];
+        if (!headers || typeof headers !== "object") return result;
+        const obj = headers as Record<string, unknown>;
+        for (const key in obj) {
+            const value = obj[key];
             if (typeof value === "string") {
                 result[key] = value;
             } else if (value != null) {
@@ -105,7 +134,7 @@ class ApiAgent {
         //console.log('baseURL=', baseURL)
         this.config = { ...this.baseConfig, baseURL }
     }
-    async execute<T = any>(): Promise<ApiResponse<T>> {
+    async execute<T = unknown>(): Promise<ApiResponse<T>> {
         try {
             //console.log(this.config)
             const response = await this.apiAgent(this.config);
@@ -116,7 +145,7 @@ class ApiAgent {
                 statusText: response.statusText,
                 headers: this.cleanHeaders(response.headers),
             };
-        } catch (e: any) {
+        } catch (e: unknown) {
             this.resetConfigAfterCall()
             console.log(e);
             if (axios.isAxiosError(e)) {

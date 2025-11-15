@@ -1,111 +1,211 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import AvailabilityHeader from "./Components/AvailabilityHeader";
+import { useState, useEffect, useCallback } from "react";
 import AvailabilityTable from "./Components/AvailabilityTable";
+import AddAvailabilityModal from "./Components/AddAvailabilityModal";
 import apis from "../../APis/Api";
-import type { DoctorAvailability } from "../../APis/Types";
+import type { DoctorAvailability, Provider } from "../../APis/Types";
+import useAuthStore from "../../GlobalStore/store";
+import useDropdownStore from "../../GlobalStore/useDropdownStore";
 
+// Types
+type AvailabilityItem = {
+  id: number;
+  day: string;
+  start: string;
+  end: string;
+  interval: string;
+  type: string;
+  status: "Active" | "Inactive";
+  providerName?: string;
+  providerImage?: string;
+};
+
+type OrganizationContext = {
+  orgId: string;
+  centerId: string;
+};
+
+// Utility Functions
+const getOrganizationContext = (): OrganizationContext | null => {
+  const organizationDetails = useAuthStore.getState().organizationDetails;
+  const selectedCenter = useDropdownStore.getState().selectedCenter;
+
+  const orgId = organizationDetails?.organization_id ?? "";
+  const centerId =
+    selectedCenter?.center_id ?? organizationDetails?.center_id ?? "";
+
+  if (!orgId || !centerId) {
+    console.warn("Missing organization or center context", { orgId, centerId });
+    return null;
+  }
+
+  return { orgId, centerId };
+};
+
+const mapAvailabilityToItem = (
+  availability: DoctorAvailability,
+  index: number
+): AvailabilityItem => {
+  const status: "Active" | "Inactive" =
+    availability.status?.toLowerCase() === "inactive" ? "Inactive" : "Active";
+
+  return {
+    id: index + 1,
+    day: (availability.week_days || []).join(", "),
+    start: availability.start_time,
+    end: availability.end_time,
+    interval: availability.time_slot_interval,
+    type: availability.appointment_type,
+    status,
+  };
+};
+
+// Custom Hooks
+const useProviders = () => {
+  const [providers, setProviders] = useState<Provider[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchProviders = async () => {
+      const context = getOrganizationContext();
+      if (!context) return;
+
+      setIsLoading(true);
+
+      try {
+        const response = await apis.GetAllProviders(
+          "",
+          context.orgId,
+          context.centerId,
+          undefined,
+          1,
+          100
+        );
+
+        if (isMounted) {
+          setProviders(response.data?.providers ?? []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch providers:", error);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchProviders();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  return { providers, isLoading };
+};
+
+const useAvailabilities = () => {
+  const [items, setItems] = useState<AvailabilityItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchAvailabilities = useCallback(async () => {
+    const context = getOrganizationContext();
+    if (!context) return;
+
+    setIsLoading(true);
+
+    try {
+      const response = await apis.GetProviderAvailabilities(
+        context.orgId,
+        context.centerId,
+        "all"
+      );
+
+      const availabilities: DoctorAvailability[] =
+        response.data?.availabilities ?? [];
+      const mapped = availabilities.map(mapAvailabilityToItem);
+
+      setItems(mapped);
+    } catch (error) {
+      console.error("Failed to fetch availabilities:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAvailabilities();
+  }, [fetchAvailabilities]);
+
+  return { items, isLoading, refetch: fetchAvailabilities };
+};
+
+// Main Component
 const ProviderAvailability = () => {
-  const navigate = useNavigate();
-  const { providerUid } = useParams<{ providerUid: string }>();
-  // read providerUid from path parameter
   const [page, setPage] = useState(1);
   const [selectedStatus, setSelectedStatus] = useState<string | undefined>(
     undefined
   );
+  const [selectedProviderId, setSelectedProviderId] = useState<string | null>(
+    "all"
+  );
+  const [addModalOpen, setAddModalOpen] = useState(false);
 
-  const [items, setItems] = useState<
-    {
-      id: number;
-      day: string;
-      start: string;
-      end: string;
-      interval: string;
-      type: string;
-      status: "Active" | "Inactive";
-    }[]
-  >([]);
+  const { providers, isLoading: providersLoading } = useProviders();
+  const {
+    items,
+    isLoading: availabilitiesLoading,
+    refetch,
+  } = useAvailabilities();
 
-  const [doctorName, setDoctorName] = useState<string>("Doctor");
-  const [doctorRole, setDoctorRole] = useState<string | undefined>(undefined);
-  const [doctorImage, setDoctorImage] = useState<string | undefined>(undefined);
+  const handleAddAvailability = () => {
+    setAddModalOpen(true);
+  };
 
-  useEffect(() => {
-    if (!providerUid) return;
+  const handleCloseModal = () => {
+    setAddModalOpen(false);
+  };
 
-    let mounted = true;
-    const fetch = async () => {
-      try {
-        const resp = await apis.GetProviderAvailabilities(providerUid);
-        // log the doctorProfile explicitly (useful for debugging)
-        console.log(
-          "API response for availabilities - doctorProfile:",
-          resp.data?.doctorProfile
-        );
-        // response is typed as DoctorAvailabilityResponse
-        const availabilities: DoctorAvailability[] =
-          resp.data?.availabilities ?? [];
-        const doctorProfile = resp.data?.doctorProfile as {
-          name?: string;
-          specialities?: { name?: string }[];
-          profile_pic?: string;
-        } | null;
-        if (doctorProfile) {
-          setDoctorName(doctorProfile.name ?? "Doctor");
-          const firstSpec = doctorProfile.specialities?.[0]?.name;
-          setDoctorRole(firstSpec);
-          setDoctorImage(doctorProfile.profile_pic);
-        }
-        if (!mounted) return;
-        const mapped = availabilities.map((d, idx) => {
-          const status: "Active" | "Inactive" =
-            d.status && d.status.toLowerCase() === "inactive"
-              ? "Inactive"
-              : "Active";
-          return {
-            id: idx + 1,
+  const handleSaveAvailability = async () => {
+    await refetch();
+    setAddModalOpen(false);
+  };
 
-            day: (d.week_days || []).join(", "),
-            start: d.start_time,
-            end: d.end_time,
-            interval: d.time_slot_interval,
-            type: d.appointment_type,
-            status,
-          };
-        });
-        setItems(mapped);
-      } catch (err) {
-        console.error("Error fetching availabilities:", err);
-      }
-    };
+  const handleProviderChange = (providerId: string | null) => {
+    setSelectedProviderId(providerId ?? "all");
+  };
 
-    fetch();
-    return () => {
-      mounted = false;
-    };
-  }, [providerUid]);
+  const pageSize = 5;
+  const isLoading = providersLoading || availabilitiesLoading;
 
   return (
     <div className="space-y-6 p-0">
-      <AvailabilityHeader
-        name={doctorName}
-        role={doctorRole}
-        image={doctorImage}
-        onAdd={() => {
-          navigate(
-            `/availability/add/${encodeURIComponent(String(providerUid))}`
-          );
-        }}
-      />
-
       <AvailabilityTable
+        providers={providers}
+        selectedProvider={selectedProviderId}
+        onProviderChange={handleProviderChange}
         items={items}
         selectedStatus={selectedStatus}
         onStatusChange={setSelectedStatus}
         page={page}
         onPageChange={setPage}
-        pageSize={5}
+        pageSize={pageSize}
         total={items.length}
+        providerName="All Providers"
+        providerImage={undefined}
+        onAdd={handleAddAvailability}
+        isLoading={isLoading}
+      />
+
+      <AddAvailabilityModal
+        opened={addModalOpen}
+        onClose={handleCloseModal}
+        providers={providers}
+        defaultProvider={
+          selectedProviderId === "all" ? null : selectedProviderId
+        }
+        onSaved={handleSaveAvailability}
       />
     </div>
   );

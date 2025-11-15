@@ -14,6 +14,7 @@ import Notification from "../../components/Global/Notification";
 import ImageUpload from "../../components/ImageUpload/ImageUpload";
 import apis from "../../APis/Api";
 import useAuthStore from "../../GlobalStore/store";
+import useDropdownStore from "../../GlobalStore/useDropdownStore";
 
 interface WorkingHours {
   monday: { enabled: boolean; start: string; end: string };
@@ -72,6 +73,8 @@ const AddCenter: React.FC = () => {
     open: false,
     data: { success: true, message: "" },
   });
+
+  const bumpCentersRefresh = useDropdownStore((s) => s.bumpCentersRefresh);
 
   //mock timgs
   const [workingHours, setWorkingHours] = useState<WorkingHours>({
@@ -218,6 +221,13 @@ const AddCenter: React.FC = () => {
         open: true,
         data: { success: true, message: response.message },
       });
+      // Trigger header to refetch centers so the newly added center appears in the dropdown
+      try {
+        bumpCentersRefresh();
+      } catch (e) {
+        // non-critical - just continue
+        console.warn("Failed to bump centers refresh", e);
+      }
       // navigate after 1.5s
       setTimeout(() => {
         setNotif((s) => ({ ...s, open: false }));
@@ -229,9 +239,6 @@ const AddCenter: React.FC = () => {
         data: { success: false, message: response?.message },
       });
     }
-
-    // TODO: Submit payload to API
-    // Example: await apiClient.post('/centers', payload);
   };
 
   const dayLabels = {

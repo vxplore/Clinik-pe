@@ -26,7 +26,7 @@ import AddProvider from "./Pages/Provider/AddProvider";
 
 // 🟪 Availability Pages
 import ProviderAvailability from "./Pages/Availability/ProviderAvailability";
-import AddProviderAvailability from "./Pages/Availability/AddProviderAvailability";
+// import AddProviderAvailability from "./Pages/Availability/AddProviderAvailability";
 
 // 🟥 Doctor Pages
 import DoctorLoginPage from "./Pages/Doctor/DoctorLogin/DoctorLoginPage";
@@ -79,13 +79,13 @@ function AppContents() {
 
         {/* 🟪 Availability */}
         <Route
-          path="/availability/:providerUid"
+          path="/availability"
           element={<ProviderAvailability />}
         />
-        <Route
+        {/* <Route
           path="/availability/add/:providerUid"
           element={<AddProviderAvailability />}
-        />
+        /> */}
 
         {/* 🟥 Doctor */}
         <Route path="/doctor-dashboard" element={<DoctorDashboardPage />} />

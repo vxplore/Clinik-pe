@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { DataTable, type DataTableColumn } from "mantine-datatable";
 import { IconDots } from "@tabler/icons-react";
 import { Button, Select, Popover } from "@mantine/core";
+import type { Provider } from "../../../APis/Types";
 
 type AvailabilityItem = {
   id: number;
@@ -11,6 +12,8 @@ type AvailabilityItem = {
   interval: string;
   type: string;
   status: "Active" | "Inactive";
+  providerName?: string;
+  providerImage?: string;
 };
 
 type Props = {
@@ -21,6 +24,12 @@ type Props = {
   onPageChange?: (page: number) => void;
   pageSize?: number;
   total?: number;
+  providerName?: string | undefined;
+  providerImage?: string | undefined;
+  onAdd?: () => void;
+  providers?: Provider[];
+  selectedProvider?: string | null;
+  onProviderChange?: (value: string | null) => void;
 };
 
 const AvailabilityTable: React.FC<Props> = ({
@@ -33,6 +42,8 @@ const AvailabilityTable: React.FC<Props> = ({
       interval: "10 mins",
       type: "In-clinic",
       status: "Active",
+      providerName: "Dr. Ananya Patel",
+      providerImage: undefined,
     },
     {
       id: 2,
@@ -42,6 +53,8 @@ const AvailabilityTable: React.FC<Props> = ({
       interval: "15 mins",
       type: "Online",
       status: "Active",
+      providerName: "Dr. Kapil",
+      providerImage: undefined,
     },
     {
       id: 3,
@@ -51,6 +64,8 @@ const AvailabilityTable: React.FC<Props> = ({
       interval: "15 mins",
       type: "Online",
       status: "Inactive",
+      providerName: "Dr. Ajij",
+      providerImage: undefined,
     },
   ],
   selectedStatus,
@@ -59,6 +74,12 @@ const AvailabilityTable: React.FC<Props> = ({
   onPageChange,
   pageSize = 5,
   total = 0,
+  providerName,
+  providerImage,
+  onAdd,
+  providers = [],
+  selectedProvider,
+  onProviderChange,
 }) => {
   const [selected, setSelected] = useState<number[]>([]);
   const headerCheckboxRef = useRef<HTMLInputElement | null>(null);
@@ -89,7 +110,6 @@ const AvailabilityTable: React.FC<Props> = ({
       headerCheckboxRef.current.indeterminate = someSelected && !allSelected;
     }
   }, [items, selected]);
-
   const columns: DataTableColumn<AvailabilityItem>[] = [
     {
       accessor: "select",
@@ -114,6 +134,31 @@ const AvailabilityTable: React.FC<Props> = ({
           onChange={() => toggleRow(r.id)}
         />
       ),
+    },
+    {
+      accessor: "provider",
+      title: "Provider Name",
+      render: (r) => {
+        const showFallback = !!selectedProvider && selectedProvider !== "all";
+        const avatarSrc =
+          r.providerImage ?? (showFallback ? providerImage : undefined);
+        const displayName =
+          r.providerName ?? (showFallback ? providerName : undefined);
+        return (
+          <div className="flex items-center gap-3">
+            {avatarSrc ? (
+              <img
+                src={avatarSrc}
+                alt={r.providerName ?? providerName}
+                className="w-8 h-8 rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-gray-200" />
+            )}
+            <div className="text-gray-800 font-medium">{displayName}</div>
+          </div>
+        );
+      },
     },
     {
       accessor: "day",
@@ -200,9 +245,9 @@ const AvailabilityTable: React.FC<Props> = ({
     <div className="bg-white rounded-lg shadow-sm p-4 ring-1 ring-gray-100">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-md font-semibold text-gray-800">
-          List of Availability
+          Providers Availability
         </h3>
-        <div>
+        <div className="flex items-center gap-3">
           <Select
             placeholder="All Status"
             data={["All Status", "Active", "Inactive"]}
@@ -216,6 +261,24 @@ const AvailabilityTable: React.FC<Props> = ({
               onStatusChange?.(val === "All Status" ? undefined : val);
             }}
           />
+          <Select
+            placeholder="All Providers"
+            data={[
+              { label: "All Providers", value: "all" },
+              ...providers.map((p) => ({ label: p.name, value: p.uid })),
+            ]}
+            value={selectedProvider ?? undefined}
+            onChange={(v) => onProviderChange?.(v ?? null)}
+            searchable
+            clearable
+            classNames={{
+              input:
+                "border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-0 focus-visible:outline-none",
+            }}
+          />
+          <Button onClick={onAdd} color="blue" size="sm">
+            + Add Availability
+          </Button>
         </div>
       </div>
       <div className="-mx-4 h-px bg-gray-200 mb-3"></div>

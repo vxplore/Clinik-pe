@@ -122,15 +122,7 @@ const ProviderTable: React.FC<ProviderTableProps> = ({
       accessor: "name",
       title: "Name",
       render: (r) => (
-        <div
-          className="flex items-center gap-3 cursor-pointer"
-          role="button"
-          onClick={() =>
-            navigate(
-              `/availability/${encodeURIComponent(String(r.providerUid))}`
-            )
-          }
-        >
+        <div className="flex items-center gap-3 cursor-pointer" role="button">
           <img
             src={r.image}
             alt={r.name}
