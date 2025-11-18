@@ -28,55 +28,16 @@ export default function Appointments() {
     useState<Appointment | null>(null);
   const [page, setPage] = useState(1);
   const [recordsData, setRecordsData] = useState<Appointment[]>([]);
+  const [allRecords, setAllRecords] = useState<Appointment[]>([]);
   const PAGE_SIZE = 10;
 
-  // --- Mock data ---
-  const records: Appointment[] = [
-    {
-      id: 1,
-      time: "11:30 AM",
-      name: "Ananya Sharma",
-      details: "F, 28, Mumbai",
-      type: "In-Clinic",
-      amount: 800,
-      status: "Upcoming",
-    },
-    {
-      id: 2,
-      time: "12:00 PM",
-      name: "Rohan Verma",
-      details: "M, 42, Delhi",
-      type: "Online",
-      amount: 500,
-      status: "Upcoming",
-    },
-    {
-      id: 3,
-      time: "01:15 PM",
-      name: "Priya Singh",
-      details: "F, 35, Bangalore",
-      type: "Completed",
-      amount: 600,
-      status: "Checked In",
-    },
-    {
-      id: 4,
-      time: "01:15 PM",
-      name: "Priya Singh",
-      details: "F, 35, Bangalore",
-      type: "Completed",
-      amount: 750,
-      status: "Checked In",
-    },
-  ];
-
-  // Initialize filtered data
-  useState(() => setRecordsData(records));
+  // No mock data: initialize both records to empty array
+  // recordsData will be filled from the API in the future
 
   const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.toLowerCase();
     setRecordsData(
-      records.filter(
+      allRecords.filter(
         (r) =>
           r.name.toLowerCase().includes(value) ||
           r.details.toLowerCase().includes(value)
@@ -148,7 +109,8 @@ export default function Appointments() {
             accessor: "type",
             title: "Type",
             render: (record) => (
-              <Badge size="lg"
+              <Badge
+                size="lg"
                 color={
                   record.type === "Online"
                     ? "#0D52AF"
@@ -171,7 +133,8 @@ export default function Appointments() {
             accessor: "status",
             title: "Status",
             render: (record) => (
-              <Badge size="lg"
+              <Badge
+                size="lg"
                 color={record.status === "Upcoming" ? "#0D52AF" : "gray"}
                 variant={record.status === "Upcoming" ? "filled" : "light"}
               >
@@ -205,40 +168,55 @@ export default function Appointments() {
         size="md"
       >
         {selectedAppointment ? (
-            <>
-                <div className="p-3 rounded-lg bg-[#F9FAFB] border border-[#EAEAEA]">
-                    <div className="flex items-center gap-4 mb-2">
-                        <Avatar src="/images/Ellipse.webp" alt="it's me" />
-                        <div>
-                            <div className="text-lg text-black font-semibold">Ananya Sharma</div>
-                            <div className="text-sm text-[#74777E]">F, 28, Mumbai</div>
-                        </div>
-                    </div>
-                    <div className="bg-white flex items-center gap-2 p-3 text-[#74777E] border border-[#EAEAEA]">
-                        <i>
-                            <svg width="13" height="16" viewBox="0 0 13 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M6.44472 5.58503L5.10068 6.77211C5.27835 7.37074 5.52652 7.94687 5.84015 8.48874C6.16728 9.02666 6.56147 9.52219 7.01354 9.9638L8.75413 9.43585C9.72925 9.13988 10.7938 9.44385 11.4422 10.2038L12.4336 11.3653C12.835 11.8315 13.0362 12.4333 12.9946 13.0431C12.9531 13.6529 12.672 14.2228 12.2109 14.6321C10.5939 16.0848 8.10405 16.576 6.23995 15.1345C4.60088 13.8654 3.21453 12.3087 2.15094 10.5429C1.08464 8.78591 0.370728 6.84378 0.0479279 4.8219C-0.309616 2.54693 1.38222 0.726303 3.49173 0.105564C4.74964 -0.2656 6.09205 0.371138 6.55361 1.55822L7.09805 2.95809C7.4556 3.8796 7.19881 4.91949 6.44472 5.58503Z" fill="#74777E"/>
-                            </svg>
-                        </i>
-                        <span>+91 9876543210</span>
-                    </div>
+          <>
+            <div className="p-3 rounded-lg bg-[#F9FAFB] border border-[#EAEAEA]">
+              <div className="flex items-center gap-4 mb-2">
+                <Avatar src="/images/Ellipse.webp" alt="it's me" />
+                <div>
+                  <div className="text-lg text-black font-semibold">
+                    Ananya Sharma
+                  </div>
+                  <div className="text-sm text-[#74777E]">F, 28, Mumbai</div>
                 </div>
-                <div className="space-y-3 mt-3">
-                    <div className="text-lg text-black font-semibold mb-2">Consultation Details</div>
-                    <p>
-                        <strong>Reason:</strong> {selectedAppointment.time}
-                    </p>
-                    <p>
-                    <strong>Last Visit:</strong> {selectedAppointment.name}
-                    </p>
-                    <p>
-                    <strong>Age:</strong> {selectedAppointment.details}
-                    </p>
-                </div>
-                <div className="text-lg mt-4 mb-2">Doctor Notes</div>
-                <div className="p-4 bg-[#F9F9F9] rounded-lg text-[#74777E]">
-                    Patient reports feeling well, blood pressure is stable. Continue with current medication. Advised to monitor BP at home and report any significant changes. Next follow-up in 3 months.
-                </div>
+              </div>
+              <div className="bg-white flex items-center gap-2 p-3 text-[#74777E] border border-[#EAEAEA]">
+                <i>
+                  <svg
+                    width="13"
+                    height="16"
+                    viewBox="0 0 13 16"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M6.44472 5.58503L5.10068 6.77211C5.27835 7.37074 5.52652 7.94687 5.84015 8.48874C6.16728 9.02666 6.56147 9.52219 7.01354 9.9638L8.75413 9.43585C9.72925 9.13988 10.7938 9.44385 11.4422 10.2038L12.4336 11.3653C12.835 11.8315 13.0362 12.4333 12.9946 13.0431C12.9531 13.6529 12.672 14.2228 12.2109 14.6321C10.5939 16.0848 8.10405 16.576 6.23995 15.1345C4.60088 13.8654 3.21453 12.3087 2.15094 10.5429C1.08464 8.78591 0.370728 6.84378 0.0479279 4.8219C-0.309616 2.54693 1.38222 0.726303 3.49173 0.105564C4.74964 -0.2656 6.09205 0.371138 6.55361 1.55822L7.09805 2.95809C7.4556 3.8796 7.19881 4.91949 6.44472 5.58503Z"
+                      fill="#74777E"
+                    />
+                  </svg>
+                </i>
+                <span>+91 9876543210</span>
+              </div>
+            </div>
+            <div className="space-y-3 mt-3">
+              <div className="text-lg text-black font-semibold mb-2">
+                Consultation Details
+              </div>
+              <p>
+                <strong>Reason:</strong> {selectedAppointment.time}
+              </p>
+              <p>
+                <strong>Last Visit:</strong> {selectedAppointment.name}
+              </p>
+              <p>
+                <strong>Age:</strong> {selectedAppointment.details}
+              </p>
+            </div>
+            <div className="text-lg mt-4 mb-2">Doctor Notes</div>
+            <div className="p-4 bg-[#F9F9F9] rounded-lg text-[#74777E]">
+              Patient reports feeling well, blood pressure is stable. Continue
+              with current medication. Advised to monitor BP at home and report
+              any significant changes. Next follow-up in 3 months.
+            </div>
           </>
         ) : (
           <p>No appointment selected.</p>

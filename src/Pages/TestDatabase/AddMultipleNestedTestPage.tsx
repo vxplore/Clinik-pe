@@ -15,6 +15,7 @@ import {
 import { IconArrowLeft, IconTrash, IconPlus } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 import apis from "../../APis/Api";
+import useAuthStore from "../../GlobalStore/store";
 import { notifications } from "@mantine/notifications";
 
 interface ChildParameter {
@@ -80,11 +81,22 @@ const AddMultipleNestedTestPage: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Fetch categories and units on mount
+  const organizationId = useAuthStore(
+    (s) => s.organizationDetails?.organization_id ?? ""
+  );
+  const centerId = useAuthStore((s) => s.organizationDetails?.center_id ?? "");
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         // Fetch categories
-        const catResp = await apis.GetTestCategories(undefined, 1, 100);
+        const catResp = await apis.GetTestCategories(
+          organizationId,
+          centerId,
+          undefined,
+          1,
+          100
+        );
         if (catResp?.success && catResp?.data?.categorys) {
           const catList = catResp.data.categorys.map((c) => ({
             id: c.uid,
@@ -92,14 +104,11 @@ const AddMultipleNestedTestPage: React.FC = () => {
           }));
           setCategories(catList);
         } else {
-          setCategories([
-            { id: "biochem", name: "Biochemistry" },
-            { id: "haema", name: "Haematology" },
-          ]);
+          setCategories([]);
         }
 
         // Fetch units
-        const unitResp = await apis.GetTestUnits("");
+        const unitResp = await apis.GetTestUnits(organizationId, centerId, "");
         if (unitResp?.success && unitResp?.data?.units) {
           const unitList = unitResp.data.units.map((u) => ({
             id: u.uid,
@@ -109,15 +118,17 @@ const AddMultipleNestedTestPage: React.FC = () => {
         }
       } catch (err) {
         console.warn("Failed to fetch categories/units", err);
-        setCategories([
-          { id: "biochem", name: "Biochemistry" },
-          { id: "haema", name: "Haematology" },
-        ]);
+        notifications.show({
+          title: "Error",
+          message: "Failed to load categories/units",
+          color: "red",
+        });
+        setCategories([]);
       }
     };
 
     fetchData();
-  }, []);
+  }, [organizationId, centerId]);
 
   const handleParentChange = (
     key: string,
@@ -239,7 +250,11 @@ const AddMultipleNestedTestPage: React.FC = () => {
     console.log(JSON.stringify(payload, null, 2));
 
     try {
-      const response = await apis.AddTestToLabDatabase(payload);
+      const response = await apis.AddTestToLabDatabase(
+        organizationId,
+        centerId,
+        payload
+      );
       if (response?.success) {
         notifications.show({
           title: "Success",

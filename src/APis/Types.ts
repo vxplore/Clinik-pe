@@ -320,10 +320,7 @@ export type DoctorQualification = {
   institute_name: string;
 };
 
-export type DoctorSpeciality = {
-  name: string;
-  speciality_id: string;
-};
+
 
 export type ProviderDetails = {
   contact_email: string;
@@ -525,6 +522,7 @@ export type DoctorCommissionPayload = {
   fee_amount: string;
   commission_type: string;
   commission: string;
+  speciality_id?: string;
 };
 
 
@@ -1078,6 +1076,25 @@ export type CreateLabTestResponse = {
     children?: LabTestChild[];
   };
 };
+
+
+export interface DoctorSpeciality {
+  speciality_id: string;
+  doctor_id: string;
+  status: string;
+  speciality_name: string;
+}
+
+export interface DoctorSpecialitiesData {
+  doctor_specialities: DoctorSpeciality[];
+}
+
+export interface DoctorSpecialitiesResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: DoctorSpecialitiesData;
+}
 
 
 

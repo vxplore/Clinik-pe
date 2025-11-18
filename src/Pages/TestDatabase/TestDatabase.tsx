@@ -3,78 +3,39 @@ import FilterBar from "./Components/FilterBar";
 import TestTable from "./Components/TestTable";
 import type { TestRow } from "./Components/TestTable";
 import apis from "../../APis/Api";
+import { notifications } from "@mantine/notifications";
+import useAuthStore from "../../GlobalStore/store";
 import AddTestTypeModal from "./Components/AddTestTypeModal";
 import { useNavigate } from "react-router-dom";
-
-const MOCK_TESTS: TestRow[] = [
-  {
-    id: "1",
-    order: 1,
-    name: "Serum Phosphorus",
-    shortName: "Phos",
-    category: "Biochemistry",
-  },
-  {
-    id: "2",
-    order: 2,
-    name: "Serum Creatinine",
-    shortName: "Creat",
-    category: "Biochemistry",
-  },
-  {
-    id: "3",
-    order: 3,
-    name: "Serum Urea",
-    shortName: "Urea",
-    category: "Biochemistry",
-  },
-  {
-    id: "4",
-    order: 4,
-    name: "Fasting Blood Sugar",
-    shortName: "FBS",
-    category: "Biochemistry",
-  },
-  {
-    id: "5",
-    order: 5,
-    name: "Blood Sugar PP",
-    shortName: "PP",
-    category: "Biochemistry",
-  },
-  {
-    id: "6",
-    order: 6,
-    name: "Serum Bilirubin (Total)",
-    shortName: "Bil T",
-    category: "Biochemistry",
-  },
-  {
-    id: "7",
-    order: 7,
-    name: "Serum Bilirubin (Direct)",
-    shortName: "Bil D",
-    category: "Biochemistry",
-  },
-];
 
 const TestDatabase: React.FC = () => {
   const [categories, setCategories] = useState<{ id: string; name: string }[]>(
     []
   );
-  const [tests] = useState<TestRow[]>(MOCK_TESTS);
+  const [tests] = useState<TestRow[]>([]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const organizationId = useAuthStore(
+    (s) => s.organizationDetails?.organization_id ?? ""
+  );
+  const centerId = useAuthStore((s) => s.organizationDetails?.center_id ?? "");
+
   useEffect(() => {
     let mounted = true;
     (async () => {
       setLoading(true);
       try {
-        const resp = await apis.GetTestCategories(undefined, 1, 100);
+        const resp = await apis.GetTestCategories(
+          organizationId,
+          centerId,
+          undefined,
+          1,
+          100
+        );
         if (mounted && resp?.success && resp?.data?.categorys) {
           const catList = resp.data.categorys.map((c) => ({
             id: c.uid,
@@ -83,13 +44,13 @@ const TestDatabase: React.FC = () => {
           setCategories(catList);
         }
       } catch (err) {
-        console.warn("GetTestCategories failed, using mock categories", err);
-        // fallback
-        setCategories([
-          { id: "biochem", name: "Biochemistry" },
-          { id: "haema", name: "Haematology" },
-          { id: "micro", name: "Microbiology" },
-        ]);
+        console.warn("GetTestCategories failed:", err);
+        notifications.show({
+          title: "Error",
+          message: "Failed to load test categories",
+          color: "red",
+        });
+        setCategories([]);
       } finally {
         setLoading(false);
       }
@@ -98,7 +59,7 @@ const TestDatabase: React.FC = () => {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [organizationId, centerId]);
 
   const filtered = useMemo(() => {
     let data = tests;
@@ -149,6 +110,9 @@ const TestDatabase: React.FC = () => {
     } else if (type === "nested") {
       // navigate to add page for nested parameter tests
       navigate("/test-database/add-nested");
+    } else if (type === "document") {
+      // navigate to add document test page (document type)
+      navigate("/test-database/add-document");
     } else {
       // for now, just show the current behavior — you can expand these later
       console.log("Selected type", type);

@@ -1,6 +1,5 @@
 import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { Button, Popover, TextInput } from "@mantine/core";
-import CategoryModal from "./Components/CategoryModal";
 import {
   DndContext,
   closestCenter,
@@ -19,11 +18,10 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { notifications } from "@mantine/notifications";
 import apis from "../../APis/Api";
-import useAuthStore from "../../GlobalStore/store";
-import type { TestCategory, TestCategoryPagination } from "../../APis/Types";
+import type { TestPanelRow } from "../../APis/Types";
 import { IconDots, IconPencil } from "@tabler/icons-react";
 
-// Inline SVG for chevrons up/down (replaces IconChevronsUpDown)
+// Inline SVG for chevrons up/down
 const ChevronsUpDown: React.FC<
   React.SVGProps<SVGSVGElement> & { size?: number }
 > = ({ size = 16, className, ...props }) => (
@@ -46,27 +44,20 @@ const ChevronsUpDown: React.FC<
     />
   </svg>
 );
-import DeleteConfirm from "../TestPackages/Components/DeleteConfirm";
 
-// ============================================================================
-// Constants
-// ============================================================================
+import DeleteConfirm from "../TestPackages/Components/DeleteConfirm";
 
 const DEFAULT_PAGE_SIZE = 5;
 const DRAG_ACTIVATION_DISTANCE = 8;
 
-// ============================================================================
-// Sortable Row Component
-// ============================================================================
-
-interface SortableRowProps {
-  category: TestCategory;
-  onEdit: (category: TestCategory) => void;
-  onDelete: (category: TestCategory) => void;
+interface SortablePanelRowProps {
+  panel: TestPanelRow;
+  onEdit: (panel: TestPanelRow) => void;
+  onDelete: (panel: TestPanelRow) => void;
 }
 
-const SortableRow: React.FC<SortableRowProps> = ({
-  category,
+const SortablePanelRow: React.FC<SortablePanelRowProps> = ({
+  panel,
   onEdit,
   onDelete,
 }) => {
@@ -77,7 +68,7 @@ const SortableRow: React.FC<SortableRowProps> = ({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: category.id });
+  } = useSortable({ id: panel.id });
 
   const rowStyle: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -96,20 +87,31 @@ const SortableRow: React.FC<SortableRowProps> = ({
           >
             <ChevronsUpDown size={16} className="text-gray-400" />
           </div>
-          <span className="text-sm text-gray-600">{category.order}.</span>
+          <span className="text-sm text-gray-600">{panel.order}.</span>
         </div>
       </td>
 
       <td className="border-b border-gray-200 px-4 py-3">
-        <div className="font-medium text-gray-900">{category.name}</div>
+        <div className="font-medium text-gray-900">{panel.name}</div>
+      </td>
+
+      <td className="border-b border-gray-200 px-4 py-3">
+        <div className="text-sm text-gray-600">{panel.category}</div>
+      </td>
+
+      <td className="border-b border-gray-200 px-4 py-3">
+        <div className="text-sm text-gray-600">
+          {panel.tests.slice(0, 2).join(", ")}
+          {panel.tests.length > 2 && ` (${panel.tests.length} tests)`}
+        </div>
       </td>
 
       <td className="border-b border-gray-200 px-4 py-3 text-right">
         <div className="flex items-center justify-end gap-2">
           <button
             className="text-blue-600 text-sm hover:text-blue-800 transition-colors"
-            onClick={() => onEdit(category)}
-            aria-label="Edit category"
+            onClick={() => onEdit(panel)}
+            aria-label="Edit panel"
           >
             <IconPencil size={16} />
           </button>
@@ -129,7 +131,7 @@ const SortableRow: React.FC<SortableRowProps> = ({
                   variant="subtle"
                   color="red"
                   size="xs"
-                  onClick={() => onDelete(category)}
+                  onClick={() => onDelete(panel)}
                 >
                   Remove
                 </Button>
@@ -142,69 +144,57 @@ const SortableRow: React.FC<SortableRowProps> = ({
   );
 };
 
-// ============================================================================
-// Main Component
-// ============================================================================
-
-const TestCategories: React.FC = () => {
+const TestPanelsDetails: React.FC = () => {
   // State: Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
 
   // State: Data
-  const [categories, setCategories] = useState<TestCategory[]>([]);
-  const [pagination, setPagination] = useState<TestCategoryPagination | null>(
-    null
-  );
+  const [panels, setPanels] = useState<TestPanelRow[]>([]);
 
   // State: UI
-  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
-  const [draggedCategoryId, setDraggedCategoryId] = useState<string | null>(
-    null
-  );
+  const [draggedPanelId, setDraggedPanelId] = useState<string | null>(null);
 
   // State: Delete Modal
-  const [categoryToDelete, setCategoryToDelete] = useState<TestCategory | null>(
-    null
-  );
+  const [panelToDelete, setPanelToDelete] = useState<TestPanelRow | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  // State: Edit/Add Modal
-  const [categoryToEdit, setCategoryToEdit] = useState<TestCategory | null>(
-    null
-  );
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
 
   // ============================================================================
   // Computed Values
   // ============================================================================
 
-  const totalCategories = pagination?.totalRecords || 0;
-  const totalPages = Math.max(
-    1,
-    Math.ceil(totalCategories / DEFAULT_PAGE_SIZE)
-  );
-
-  const filteredCategories = useMemo(() => {
-    if (!searchQuery) return categories;
+  const filteredPanels = useMemo(() => {
+    if (!searchQuery) return panels;
 
     const normalizedQuery = searchQuery.toLowerCase();
-    return categories.filter((category) =>
-      category.name.toLowerCase().includes(normalizedQuery)
+    return panels.filter(
+      (panel) =>
+        panel.name.toLowerCase().includes(normalizedQuery) ||
+        panel.category.toLowerCase().includes(normalizedQuery) ||
+        panel.tests.some((t) => t.toLowerCase().includes(normalizedQuery))
     );
-  }, [searchQuery, categories]);
+  }, [searchQuery, panels]);
 
-  const sortedCategories = useMemo(() => {
-    return [...filteredCategories].sort(
+  const sortedPanels = useMemo(() => {
+    return [...filteredPanels].sort(
       (a, b) => Number(a.order) - Number(b.order)
     );
-  }, [filteredCategories]);
+  }, [filteredPanels]);
 
-  const draggedCategory = draggedCategoryId
-    ? categories.find((cat) => cat.id === draggedCategoryId)
+  const draggedPanel = draggedPanelId
+    ? panels.find((p) => p.id === draggedPanelId)
     : null;
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(sortedPanels.length / DEFAULT_PAGE_SIZE)
+  );
+
+  const paginatedPanels = sortedPanels.slice(
+    (currentPage - 1) * DEFAULT_PAGE_SIZE,
+    currentPage * DEFAULT_PAGE_SIZE
+  );
 
   // ============================================================================
   // Drag and Drop Configuration
@@ -218,7 +208,10 @@ const TestCategories: React.FC = () => {
     })
   );
 
-  // Notification helpers used across functions - declare before usage
+  // ============================================================================
+  // Notification Helpers
+  // ============================================================================
+
   const showNotification = useCallback(
     (message: string, type: "success" | "error" | "warning") => {
       const colorMap = {
@@ -246,136 +239,67 @@ const TestCategories: React.FC = () => {
     [showNotification]
   );
 
-  const showWarningNotification = useCallback(
-    (message: string) => showNotification(message, "warning"),
-    [showNotification]
-  );
-
-  // Notification helpers are stable using useCallback, declared here so
-  // loadCategories and other callbacks can reference them safely.
-
   // ============================================================================
   // API Calls
   // ============================================================================
 
-  const organizationId = useAuthStore(
-    (s) => s.organizationDetails?.organization_id ?? ""
-  );
-  const centerId = useAuthStore((s) => s.organizationDetails?.center_id ?? "");
-
-  const loadCategories = useCallback(async () => {
-    setIsLoadingCategories(true);
-
+  const loadPanels = useCallback(async () => {
     try {
-      const response = await apis.GetTestCategories(
-        organizationId,
-        centerId,
-        searchQuery || undefined,
-        currentPage,
-        DEFAULT_PAGE_SIZE
-      );
+      const response = await apis.GetTestPanels();
 
-      if (response.success) {
-        setCategories(response.data.categorys);
-        setPagination(response.data.pagination);
+      if (response.success && response.data?.panels) {
+        setPanels(response.data.panels);
       } else {
-        showErrorNotification(response.message || "Failed to fetch categories");
+        showErrorNotification(response.message || "Failed to fetch panels");
       }
     } catch (error) {
-      console.error("Failed to load categories:", error);
-      showErrorNotification("Failed to fetch categories");
-    } finally {
-      setIsLoadingCategories(false);
+      console.error("Failed to load panels:", error);
+      showErrorNotification("Failed to fetch panels");
     }
-  }, [
-    currentPage,
-    searchQuery,
-    showErrorNotification,
-    organizationId,
-    centerId,
-  ]);
+  }, [showErrorNotification]);
 
-  const deleteCategory = async (categoryId: string) => {
+  const deletePanel = async (panelId: string) => {
     setIsDeleting(true);
 
     try {
-      const response = await apis.DeleteTestCategory(
-        organizationId,
-        centerId,
-        categoryId
-      );
+      const response = await apis.DeleteTestPanel(panelId);
 
       if (response.success) {
-        showSuccessNotification(response.message || "Category deleted");
-        await loadCategories();
+        showSuccessNotification(response.message || "Panel deleted");
+        await loadPanels();
       } else {
-        showWarningNotification(response.message || "Category deleted locally");
-        removeCategoryLocally(categoryId);
+        showErrorNotification(response.message || "Failed to delete panel");
+        removePanelLocally(panelId);
       }
 
       closeDeleteModal();
     } catch (error) {
-      console.error("Failed to delete category:", error);
-      showWarningNotification("Category removed locally");
-      removeCategoryLocally(categoryId);
+      console.error("Failed to delete panel:", error);
+      showErrorNotification("Panel removed locally");
+      removePanelLocally(panelId);
       closeDeleteModal();
     } finally {
       setIsDeleting(false);
     }
   };
 
-  // Save (Add/Update) category by name — invoked from the modal
-  const handleAddCategory = async (name: string) => {
-    if (!name || !name.trim()) {
-      showErrorNotification("Category name is required");
-      return;
-    }
-
-    setIsSaving(true);
+  const reorderPanels = async (reorderedPanels: TestPanelRow[]) => {
     try {
-      const response = categoryToEdit
-        ? await apis.UpdateTestCategory(
-            organizationId,
-            centerId,
-            categoryToEdit.uid,
-            { name }
-          )
-        : await apis.AddTestCategory(organizationId, centerId, { name });
-
-      if (response?.success) {
-        showSuccessNotification(response.message);
-        await loadCategories();
-        closeEditModal();
-      } else {
-        showErrorNotification(response?.message || "Failed to save category");
-      }
-    } catch (error) {
-      console.error("Failed to save category:", error);
-      showErrorNotification("Failed to save category");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const reorderCategories = async (draggedUid: string, afterUid: string) => {
-    try {
-      const response = await apis.ReorderTestCategories(
-        organizationId,
-        centerId,
-        {
-          uid: draggedUid,
-          after_uid: afterUid,
-        }
-      );
+      const response = await apis.ReorderTestPanels({
+        panels: reorderedPanels.map((p, i) => ({
+          id: p.id,
+          order: i + 1,
+        })),
+      });
 
       const notificationType = response.success ? "success" : "error";
       showNotification(response.message, notificationType);
 
       if (response.success) {
-        await loadCategories();
+        await loadPanels();
       }
     } catch (error) {
-      console.error("Failed to reorder categories:", error);
+      console.error("Failed to reorder panels:", error);
       showErrorNotification("Failed to sync order");
     }
   };
@@ -385,56 +309,29 @@ const TestCategories: React.FC = () => {
   // ============================================================================
 
   const handleDragStart = (event: DragStartEvent) => {
-    setDraggedCategoryId(String(event.active.id));
+    setDraggedPanelId(String(event.active.id));
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
-    setDraggedCategoryId(null);
+    setDraggedPanelId(null);
 
     if (!over || active.id === over.id) return;
 
-    // Use the visible/sorted categories (the order in UI) to compute indices
-    const visible = sortedCategories;
-    const oldVisibleIndex = visible.findIndex((cat) => cat.id === active.id);
-    const newVisibleIndex = visible.findIndex((cat) => cat.id === over.id);
+    const oldIndex = panels.findIndex((p) => p.id === active.id);
+    const newIndex = panels.findIndex((p) => p.id === over.id);
 
-    if (oldVisibleIndex === -1 || newVisibleIndex === -1) return;
+    if (oldIndex === -1 || newIndex === -1) return;
 
-    const draggedVisibleCategory = visible[oldVisibleIndex];
-    const reorderedVisible = arrayMove(
-      visible,
-      oldVisibleIndex,
-      newVisibleIndex
-    );
+    const reordered = arrayMove(panels, oldIndex, newIndex);
 
-    // Determine after_uid (based on visible order). If placed at top, after_uid is empty
-    const afterUid =
-      newVisibleIndex === 0 ? "" : reorderedVisible[newVisibleIndex - 1].uid;
-
-    // For immediate UI feedback, compute the full categories reordering using the original indices
-    const oldFullIndex = categories.findIndex((cat) => cat.id === active.id);
-    const newFullIndex = categories.findIndex((cat) => cat.id === over.id);
-    if (oldFullIndex === -1 || newFullIndex === -1) return;
-    const reorderedFull = arrayMove(categories, oldFullIndex, newFullIndex);
-
-    setCategories(reorderedFull);
-    await reorderCategories(draggedVisibleCategory.uid, afterUid);
+    setPanels(reordered);
+    await reorderPanels(reordered);
   };
 
-  const handleEditCategory = (category: TestCategory) => {
-    setCategoryToEdit(category);
-    setIsEditModalOpen(true);
-  };
-
-  const handleDeleteCategory = (category: TestCategory) => {
-    setCategoryToDelete(category);
+  const handleDeletePanel = (panel: TestPanelRow) => {
+    setPanelToDelete(panel);
     setIsDeleteModalOpen(true);
-  };
-
-  const handleAddNewCategory = () => {
-    setCategoryToEdit(null);
-    setIsEditModalOpen(true);
   };
 
   const handlePageChange = (pageNumber: number) => {
@@ -445,22 +342,13 @@ const TestCategories: React.FC = () => {
   // Helper Functions
   // ============================================================================
 
-  // Name validation occurs in the handler that receives the name explicitly
-
-  const removeCategoryLocally = (categoryId: string) => {
-    setCategories((prevCategories) =>
-      prevCategories.filter((cat) => cat.id !== categoryId)
-    );
+  const removePanelLocally = (panelId: string) => {
+    setPanels((prevPanels) => prevPanels.filter((p) => p.id !== panelId));
   };
 
   const closeDeleteModal = () => {
     setIsDeleteModalOpen(false);
-    setCategoryToDelete(null);
-  };
-
-  const closeEditModal = () => {
-    setIsEditModalOpen(false);
-    setCategoryToEdit(null);
+    setPanelToDelete(null);
   };
 
   // ============================================================================
@@ -468,8 +356,8 @@ const TestCategories: React.FC = () => {
   // ============================================================================
 
   useEffect(() => {
-    loadCategories();
-  }, [loadCategories]);
+    loadPanels();
+  }, [loadPanels]);
 
   // ============================================================================
   // Render Helpers
@@ -477,11 +365,14 @@ const TestCategories: React.FC = () => {
 
   const renderPaginationInfo = () => {
     const startIndex = (currentPage - 1) * DEFAULT_PAGE_SIZE + 1;
-    const endIndex = Math.min(currentPage * DEFAULT_PAGE_SIZE, totalCategories);
+    const endIndex = Math.min(
+      currentPage * DEFAULT_PAGE_SIZE,
+      sortedPanels.length
+    );
 
     return (
       <div className="text-sm text-gray-500">
-        Showing {startIndex} to {endIndex} of {totalCategories} entries
+        Showing {startIndex} to {endIndex} of {sortedPanels.length} entries
       </div>
     );
   };
@@ -521,25 +412,17 @@ const TestCategories: React.FC = () => {
       <div className="flex items-center justify-between mb-4">
         <div className="flex gap-4 items-center flex-1">
           <h2 className="text-lg font-semibold text-gray-800">
-            Test categories
+            Test panel details
           </h2>
           <div className="w-64">
             <TextInput
               placeholder="Search in page"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              aria-label="Search categories"
+              aria-label="Search panels"
             />
           </div>
         </div>
-        <Button
-          onClick={handleAddNewCategory}
-          variant="filled"
-          color="blue"
-          disabled={isLoadingCategories}
-        >
-          + Add new
-        </Button>
       </div>
 
       {/* Table with Drag and Drop */}
@@ -559,6 +442,12 @@ const TestCategories: React.FC = () => {
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
                   Name
                 </th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
+                  Category
+                </th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
+                  Tests
+                </th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
                   Action
                 </th>
@@ -567,15 +456,18 @@ const TestCategories: React.FC = () => {
 
             <tbody>
               <SortableContext
-                items={sortedCategories.map((cat) => cat.id)}
+                items={paginatedPanels.map((p) => p.id)}
                 strategy={verticalListSortingStrategy}
               >
-                {sortedCategories.map((category) => (
-                  <SortableRow
-                    key={category.id}
-                    category={category}
-                    onEdit={handleEditCategory}
-                    onDelete={handleDeleteCategory}
+                {paginatedPanels.map((panel) => (
+                  <SortablePanelRow
+                    key={panel.id}
+                    panel={panel}
+                    onEdit={() => {
+                      // Handle edit - navigate or open modal
+                      console.log("Edit panel:", panel);
+                    }}
+                    onDelete={handleDeletePanel}
                   />
                 ))}
               </SortableContext>
@@ -585,7 +477,7 @@ const TestCategories: React.FC = () => {
 
         {/* Drag Overlay */}
         <DragOverlay>
-          {draggedCategory && (
+          {draggedPanel && (
             <div className="bg-white shadow-lg rounded border-2 border-blue-400 opacity-90">
               <table className="w-full text-sm">
                 <tbody>
@@ -594,24 +486,33 @@ const TestCategories: React.FC = () => {
                       <div className="flex items-center gap-2">
                         <ChevronsUpDown size={16} className="text-gray-400" />
                         <span className="text-sm text-gray-600">
-                          {draggedCategory.order}.
+                          {draggedPanel.order}.
                         </span>
                       </div>
                     </td>
 
                     <td className="px-4 py-3">
                       <div className="font-medium text-gray-900">
-                        {draggedCategory.name}
+                        {draggedPanel.name}
                       </div>
                     </td>
 
-                    {/* FIXED ACTION COLUMN */}
+                    <td className="px-4 py-3">
+                      <div className="text-sm text-gray-600">
+                        {draggedPanel.category}
+                      </div>
+                    </td>
+
+                    <td className="px-4 py-3">
+                      <div className="text-sm text-gray-600">
+                        {draggedPanel.tests.slice(0, 2).join(", ")}
+                        {draggedPanel.tests.length > 2 &&
+                          ` (${draggedPanel.tests.length} tests)`}
+                      </div>
+                    </td>
+
                     <td className="px-4 py-3 text-right">
-                      {" "}
-                      {/* Added text-right for right alignment */}
                       <div className="flex items-center justify-end gap-2">
-                        {" "}
-                        {/* Added justify-end to push icons to the right */}
                         <IconPencil size={16} className="text-blue-600" />
                         <IconDots className="rotate-90 text-gray-400" />
                       </div>
@@ -624,24 +525,12 @@ const TestCategories: React.FC = () => {
         </DragOverlay>
       </DndContext>
 
-      {/* Edit/Add Modal */}
-      <CategoryModal
-        opened={isEditModalOpen}
-        onClose={closeEditModal}
-        onSave={handleAddCategory}
-        initialName={categoryToEdit?.name}
-        saving={isSaving}
-        title={categoryToEdit ? "Edit Category" : "Add Category"}
-      />
-
       {/* Delete Confirmation Modal */}
       <DeleteConfirm
         opened={isDeleteModalOpen}
         onClose={closeDeleteModal}
-        onConfirm={() =>
-          categoryToDelete && deleteCategory(categoryToDelete.uid)
-        }
-        itemName={categoryToDelete?.name}
+        onConfirm={() => panelToDelete && deletePanel(panelToDelete.id)}
+        itemName={panelToDelete?.name}
         loading={isDeleting}
       />
 
@@ -677,4 +566,4 @@ const TestCategories: React.FC = () => {
   );
 };
 
-export default TestCategories;
+export default TestPanelsDetails;

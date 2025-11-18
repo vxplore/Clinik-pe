@@ -46,65 +46,6 @@ const ChevronsUpDown: React.FC<
 );
 import DeleteConfirm from "../TestPackages/Components/DeleteConfirm";
 
-const MOCK_PANELS: TestPanelRow[] = [
-  {
-    id: "1",
-    order: 1,
-    name: "CBC (with absolute counts)",
-    category: "Haematology",
-    tests: [
-      "Hemoglobin",
-      "Total Leukocyte Count",
-      "Differential Leucocyte Count",
-      "Platelet Count",
-    ],
-    ratelistEntries:
-      "Antenatal Package, Cardiac package, CBC (with absolute counts)",
-  },
-  {
-    id: "2",
-    order: 2,
-    name: "Complete Blood Count (CBC)",
-    category: "Haematology",
-    tests: [
-      "Hemoglobin",
-      "Total Leukocyte Count",
-      "Differential Leucocyte Count",
-      "Platelet Count",
-    ],
-    ratelistEntries: "CBC with GBP, Complete Blood Count (CBC)",
-  },
-  {
-    id: "3",
-    order: 3,
-    name: "CBC with ESR",
-    category: "Haematology",
-    tests: [
-      "Hemoglobin",
-      "Total Leukocyte Count",
-      "Differential Leucocyte Count",
-      "Platelet Count",
-    ],
-    ratelistEntries: "Anemia package, Arthritis Package, CBC with ESR",
-  },
-  {
-    id: "4",
-    order: 4,
-    name: "BT & CT",
-    category: "Haematology",
-    tests: ["Bleeding Time", "Clotting Time"],
-    ratelistEntries: "BT & CT",
-  },
-  {
-    id: "5",
-    order: 5,
-    name: "Coagulation Profile",
-    category: "Haematology",
-    tests: ["Bleeding Time", "Clotting Time"],
-    ratelistEntries: "Coagulation Profile",
-  },
-];
-
 // Sortable Row Component
 const SortableRow: React.FC<{
   row: TestPanelRow;
@@ -195,7 +136,7 @@ const TestPanels: React.FC = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [query, setQuery] = useState("");
-  const [panels, setPanels] = useState<TestPanelRow[]>(MOCK_PANELS);
+  const [panels, setPanels] = useState<TestPanelRow[]>([]);
   const [deletingRow, setDeletingRow] = useState<TestPanelRow | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [loadingPanels, setLoadingPanels] = useState(false);
@@ -242,7 +183,12 @@ const TestPanels: React.FC = () => {
           );
         }
       } catch (err) {
-        console.warn("GetTestPanels failed, using local mocks", err);
+        console.warn("GetTestPanels failed:", err);
+        notifications.show({
+          title: "Error",
+          message: "Failed to load test panels",
+          color: "red",
+        });
       } finally {
         setLoadingPanels(false);
       }

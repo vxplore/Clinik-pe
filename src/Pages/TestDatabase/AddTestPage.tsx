@@ -14,6 +14,7 @@ import {
 } from "@mantine/core";
 import { IconArrowLeft } from "@tabler/icons-react";
 import apis from "../../APis/Api";
+import useAuthStore from "../../GlobalStore/store";
 import { notifications } from "@mantine/notifications";
 import type { TestCategory, Unit } from "../../APis/Types";
 
@@ -44,12 +45,17 @@ const AddTestPage: React.FC = () => {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   // Load categories and units on mount
+  const organizationId = useAuthStore(
+    (s) => s.organizationDetails?.organization_id ?? ""
+  );
+  const centerId = useAuthStore((s) => s.organizationDetails?.center_id ?? "");
+
   useEffect(() => {
     const loadData = async () => {
       try {
         const [catResp, unitResp] = await Promise.all([
-          apis.GetTestCategories(undefined, 1, 100),
-          apis.GetTestUnits(""),
+          apis.GetTestCategories(organizationId, centerId, undefined, 1, 100),
+          apis.GetTestUnits(organizationId, centerId, ""),
         ]);
 
         if (catResp?.success && catResp?.data?.categorys) {
@@ -65,7 +71,7 @@ const AddTestPage: React.FC = () => {
     };
 
     loadData();
-  }, []);
+  }, [organizationId, centerId]);
 
   const handleChange = (k: string, v: string | number | boolean) =>
     setForm((s) => ({ ...s, [k]: v }));
@@ -121,7 +127,11 @@ const AddTestPage: React.FC = () => {
       // Log payload as requested
       console.log(JSON.stringify(payload, null, 2));
 
-      const response = await apis.AddTestToLabDatabase(payload);
+      const response = await apis.AddTestToLabDatabase(
+        organizationId,
+        centerId,
+        payload
+      );
       console.log("API response:", response);
       if (response?.success) {
         notifications.show({

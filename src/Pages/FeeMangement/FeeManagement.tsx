@@ -3,7 +3,11 @@ import { Drawer, TextInput, Select, Button, Grid } from "@mantine/core";
 import FeeTable from "./Components/FeeTable";
 import type { FeeRow } from "./Components/FeeTable";
 import apis from "../../APis/Api";
-import type { Provider, DoctorCommissionPayload } from "../../APis/Types";
+import type {
+  Provider,
+  DoctorCommissionPayload,
+  ProviderFee,
+} from "../../APis/Types";
 import useAuthStore from "../../GlobalStore/store";
 
 const APPOINTMENT_TYPES = [
@@ -22,6 +26,7 @@ interface FormState {
   feeAmount: number | null;
   commissionType: string;
   commission: number | null;
+  specialityUid?: string;
 }
 
 const INITIAL_FORM_STATE: FormState = {
@@ -30,6 +35,7 @@ const INITIAL_FORM_STATE: FormState = {
   feeAmount: null,
   commissionType: "Flat",
   commission: null,
+  specialityUid: "",
 };
 
 const FeeManagement: React.FC = () => {
@@ -42,6 +48,10 @@ const FeeManagement: React.FC = () => {
   const [totalRecords, setTotalRecords] = useState(0);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [providers, setProviders] = useState<Provider[]>([]);
+  const [specialities, setSpecialities] = useState<
+    { speciality_id: string; speciality_name: string }[]
+  >([]);
+  const [isLoadingSpecialities, setIsLoadingSpecialities] = useState(false);
   const [isLoadingProviders, setIsLoadingProviders] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formState, setFormState] = useState<FormState>(INITIAL_FORM_STATE);
@@ -50,7 +60,7 @@ const FeeManagement: React.FC = () => {
     organizationDetails?.organization_id && organizationDetails?.center_id
   );
 
-  const transformFeeData = useCallback((feeList: any[]): FeeRow[] => {
+  const transformFeeData = useCallback((feeList: ProviderFee[]): FeeRow[] => {
     return feeList.map((fee) => ({
       id: fee.uid || fee.id,
       orgId: fee.organization_id,
@@ -66,6 +76,9 @@ const FeeManagement: React.FC = () => {
     }));
   }, []);
 
+  const orgId = organizationDetails?.organization_id ?? "";
+  const centerId = organizationDetails?.center_id ?? "";
+
   const fetchFees = useCallback(
     async (page: number) => {
       if (!hasRequiredOrgDetails) {
@@ -75,12 +88,7 @@ const FeeManagement: React.FC = () => {
       }
 
       try {
-        const response = await apis.GetFees(
-          organizationDetails.organization_id,
-          organizationDetails.center_id,
-          PAGE_SIZE,
-          page
-        );
+        const response = await apis.GetFees(orgId, centerId, PAGE_SIZE, page);
 
         if (response?.success && response.data) {
           const feeList = response.data.provider_fee_list || [];
@@ -101,7 +109,7 @@ const FeeManagement: React.FC = () => {
         setTotalRecords(0);
       }
     },
-    [hasRequiredOrgDetails, organizationDetails, transformFeeData]
+    [hasRequiredOrgDetails, orgId, centerId, transformFeeData]
   );
 
   const fetchProviders = useCallback(async () => {
@@ -111,8 +119,8 @@ const FeeManagement: React.FC = () => {
     try {
       const response = await apis.GetAllProviders(
         "basic",
-        organizationDetails.organization_id,
-        organizationDetails.center_id,
+        orgId,
+        centerId,
         undefined,
         1,
         100
@@ -127,7 +135,32 @@ const FeeManagement: React.FC = () => {
     } finally {
       setIsLoadingProviders(false);
     }
-  }, [hasRequiredOrgDetails, organizationDetails]);
+  }, [hasRequiredOrgDetails, orgId, centerId]);
+
+  const fetchSpecialities = useCallback(
+    async (providerUid: string) => {
+      if (!hasRequiredOrgDetails || !providerUid) return;
+      setIsLoadingSpecialities(true);
+      try {
+        const resp = await apis.GetDoctorSpecalities(
+          orgId,
+          centerId,
+          providerUid
+        );
+        if (resp?.success && resp?.data?.doctor_specialities) {
+          setSpecialities(resp.data.doctor_specialities);
+        } else {
+          setSpecialities([]);
+        }
+      } catch (err) {
+        console.error("Failed to load specialities:", err);
+        setSpecialities([]);
+      } finally {
+        setIsLoadingSpecialities(false);
+      }
+    },
+    [hasRequiredOrgDetails, orgId, centerId]
+  );
 
   useEffect(() => {
     fetchFees(currentPage);
@@ -136,8 +169,10 @@ const FeeManagement: React.FC = () => {
   useEffect(() => {
     if (isDrawerOpen) {
       fetchProviders();
+      // If a provider was already selected, ensure we load the specialities
+      if (formState.providerUid) fetchSpecialities(formState.providerUid);
     }
-  }, [isDrawerOpen, fetchProviders]);
+  }, [isDrawerOpen, fetchProviders, fetchSpecialities, formState.providerUid]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -157,6 +192,15 @@ const FeeManagement: React.FC = () => {
     value: FormState[K]
   ) => {
     setFormState((prev) => ({ ...prev, [field]: value }));
+    // if provider changed, fetch specialities and reset selected speciality
+    if (field === "providerUid") {
+      const uid = value as string;
+      setFormState((prev) => ({ ...prev, specialityUid: "" }));
+      setSpecialities([]);
+      if (uid) {
+        fetchSpecialities(uid);
+      }
+    }
   };
 
   const validateForm = (): boolean => {
@@ -187,15 +231,12 @@ const FeeManagement: React.FC = () => {
       fee_amount: String(formState.feeAmount),
       commission_type: formState.commissionType,
       commission: String(formState.commission ?? 0),
+      speciality_id: formState.specialityUid || undefined,
     };
 
     setIsSubmitting(true);
     try {
-      const response = await apis.AddFee(
-        organizationDetails.organization_id,
-        organizationDetails.center_id,
-        payload
-      );
+      const response = await apis.AddFee(orgId, centerId, payload);
 
       if (response?.success) {
         await fetchFees(currentPage);
@@ -237,7 +278,7 @@ const FeeManagement: React.FC = () => {
             <Grid.Col span={6}>
               <TextInput
                 label="Organization"
-                value={organizationDetails?.organization_name}
+                value={organizationDetails?.organization_name ?? ""}
                 disabled
                 required
               />
@@ -246,7 +287,7 @@ const FeeManagement: React.FC = () => {
             <Grid.Col span={6}>
               <TextInput
                 label="Center"
-                value={organizationDetails?.center_name}
+                value={organizationDetails?.center_name ?? ""}
                 disabled
                 required
               />
@@ -266,6 +307,25 @@ const FeeManagement: React.FC = () => {
                 onChange={(value) =>
                   updateFormField("providerUid", value || "")
                 }
+              />
+            </Grid.Col>
+
+            <Grid.Col span={6}>
+              <Select
+                label="Speciality"
+                data={specialities.map((s) => ({
+                  value: s.speciality_id,
+                  label: s.speciality_name,
+                }))}
+                placeholder={
+                  isLoadingSpecialities ? "Loading..." : "Select speciality"
+                }
+                searchable
+                value={formState.specialityUid}
+                onChange={(value) =>
+                  updateFormField("specialityUid", value || "")
+                }
+                disabled={isLoadingSpecialities || specialities.length === 0}
               />
             </Grid.Col>
 

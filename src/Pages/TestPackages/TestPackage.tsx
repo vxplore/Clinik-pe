@@ -10,64 +10,11 @@ import EditPackageDrawer from "./Components/EditPackageDrawer";
 import DeleteConfirm from "./Components/DeleteConfirm";
 // navigate not required here — drawer handles add/edit
 
-const MOCK_PACKAGES: TestPackageRow[] = [
-  {
-    id: "1",
-    name: "Anemia package",
-    fee: "Rs.100",
-    gender: "Both",
-    included: "C-Reactive Protein, CRP (Quantitative), Folic Acid, Vitamin B12",
-    tests: [
-      "C-Reactive Protein",
-      "CRP (Quantitative)",
-      "Folic Acid",
-      "Vitamin B12",
-    ],
-    panels: [],
-  },
-  {
-    id: "2",
-    name: "Antenatal Package",
-    fee: "Rs.100",
-    gender: "Female",
-    included: "Urine Routine Examination, Thyroid-Stimulating Hormone",
-    tests: ["Urine Routine Examination", "Thyroid-Stimulating Hormone"],
-    panels: ["Antenatal Panel"],
-  },
-  {
-    id: "3",
-    name: "Arthritis Package",
-    fee: "Rs.100",
-    gender: "Both",
-    included: "C-Reactive Protein, C3 Complement",
-    tests: ["C-Reactive Protein", "C3 Complement"],
-    panels: ["Arthritis Profile"],
-  },
-  {
-    id: "4",
-    name: "Bad Obstetric History (BOH) Package",
-    fee: "Rs.100",
-    gender: "Female",
-    included: "Thyroid-Stimulating Hormone, TSH, Lupus Anticoagulant",
-    tests: ["Thyroid-Stimulating Hormone", "TSH", "Lupus Anticoagulant"],
-    panels: ["Antenatal Panel"],
-  },
-  {
-    id: "5",
-    name: "CBC with GBP",
-    fee: "Rs.100",
-    gender: "Both",
-    included: "Peripheral Blood Smear, Complete Blood Count (CBC)",
-    tests: ["Peripheral Blood Smear", "Complete Blood Count (CBC)"],
-    panels: [],
-  },
-];
-
 const TestPackage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [pageSize, _setPageSize] = useState(10);
   const [query, setQuery] = useState("");
-  const [packages, setPackages] = useState<TestPackageRow[]>(MOCK_PACKAGES);
+  const [packages, setPackages] = useState<TestPackageRow[]>([]);
   const [loadingPackages, setLoadingPackages] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -171,7 +118,7 @@ const TestPackage: React.FC = () => {
     })();
   };
 
-  // Load test packages from API when mounted, fallback to mock if API fails
+  // Load test packages from API when mounted
   React.useEffect(() => {
     let mounted = true;
     (async () => {
@@ -180,8 +127,13 @@ const TestPackage: React.FC = () => {
         const resp = await apis.GetTestPackages();
         if (mounted && resp?.data?.packages) setPackages(resp.data.packages);
       } catch (err) {
-        console.warn("GetTestPackages failed, using local mocks", err);
-        // fallback to MOCK_PACKAGES already in state
+        console.warn("GetTestPackages failed:", err);
+        notifications.show({
+          title: "Error",
+          message: "Failed to load test packages",
+          color: "red",
+        });
+        // fallback: keep local state unchanged
       } finally {
         setLoadingPackages(false);
       }

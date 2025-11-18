@@ -47,8 +47,12 @@ import TestCategories from "./Pages/TestCategories/TestCategories";
 import TestDatabase from "./Pages/TestDatabase/TestDatabase";
 import AddTestPage from "./Pages/TestDatabase/AddTestPage";
 import AddMultipleTestPage from "./Pages/TestDatabase/AddMultipleTestPage";
+import AddDocumentTestPage from "./Pages/TestDatabase/AddDocumentTestPage";
 import Units from "./Pages/Units/Units";
 import AddMultipleNestedTestPage from "./Pages/TestDatabase/AddMultipleNestedTestPage";
+import TestPanelsDetails from "./Pages/TestPanels/TestPanelsDetails";
+import DiagnosticBillsPage from "./Pages/DiagnosticBills/DiagnosticBillsPage";
+import AddDiagnosticBillsPage from "./Pages/DiagnosticBills/AddDiagnosticBillsPage";
 
 function AppContents() {
   return (
@@ -107,16 +111,25 @@ function AppContents() {
         <Route path="/booking" element={<BookingPage />} />
         <Route path="/test-packages" element={<TestPackage />} />
         <Route path="/test-panels" element={<TestPanels />} />
+        <Route path="/test-panels/:id" element={<TestPanelsDetails />} />
         <Route path="/test-panels/edit" element={<EditPanelPage />} />
         <Route path="/test-categories" element={<TestCategories />} />
         <Route path="/test-database" element={<TestDatabase />} />
         <Route path="/test-database/add" element={<AddTestPage />} />
+        <Route path="/bills" element={<DiagnosticBillsPage />} />
+        <Route path="/bills/add" element={<AddDiagnosticBillsPage />} />
         <Route
           path="/test-database/add-multiple"
           element={<AddMultipleTestPage />}
-
         />
-        <Route path="/test-database/add-nested" element={<AddMultipleNestedTestPage />} />
+        <Route
+          path="/test-database/add-nested"
+          element={<AddMultipleNestedTestPage />}
+        />
+        <Route
+          path="/test-database/add-document"
+          element={<AddDocumentTestPage />}
+        />
         <Route path="/units" element={<Units />} />
       </Route>
 

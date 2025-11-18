@@ -7,8 +7,8 @@ const OnboardingPage = () => {
   return (
     <div className="min-h-screen bg-blue-50">
       <div>
-        <div className="flex flex-col lg:flex-row min-h-screen">
-          <div className="flex-1 bg-transparent p-6 lg:p-16 flex flex-col justify-center">
+        <div className="flex flex-row min-h-screen">
+          <div className="flex-1 bg-transparent p-6  flex flex-col justify-center">
             {/* Logo Section */}
             <div className="mb-12">
               <div className="flex items-center gap-2 mb-2">
@@ -22,7 +22,7 @@ const OnboardingPage = () => {
 
             {/* Main Heading */}
             <div className="mb-12">
-              <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+              <h2 className="text-4xl font-bold text-gray-900 mb-4">
                 Grow Your Clinic & Lab With
               </h2>
               <p className="text-gray-600 text-base max-w-md">
@@ -32,7 +32,7 @@ const OnboardingPage = () => {
             </div>
 
             {/* Feature Cards Section */}
-            <div className="flex flex-wrap gap-8 lg:gap-12 mb-12">
+            <div className="flex flex-wrap gap-12 mb-12">
               <FeatureCard
                 icon={<IconUsers size={32} />}
                 title="Increase Patients"
@@ -60,7 +60,7 @@ const OnboardingPage = () => {
             </div>
           </div>
 
-          <div className="flex-1 bg-transparent p-6 lg:p-16 flex items-center justify-center">
+          <div className="flex-1 bg-transparent p-16 flex items-center justify-center">
             <Outlet />
           </div>
         </div>

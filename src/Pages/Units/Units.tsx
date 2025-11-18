@@ -2,12 +2,18 @@ import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { Button, TextInput } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import apis from "../../APis/Api";
+import useAuthStore from "../../GlobalStore/store";
 import type { Unit } from "../../APis/Types";
 import UnitsTable from "./Components/UnitsTable";
 import AddUnitModal from "./Components/AddUnitModal";
 import DeleteConfirm from "../TestPackages/Components/DeleteConfirm";
 
 const Units: React.FC = () => {
+  const organizationId = useAuthStore(
+    (s) => s.organizationDetails?.organization_id ?? ""
+  );
+  const centerId = useAuthStore((s) => s.organizationDetails?.center_id ?? "");
+
   const [units, setUnits] = useState<Unit[]>([]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
@@ -23,14 +29,18 @@ const Units: React.FC = () => {
   const loadUnits = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await apis.GetTestUnits(query || "");
+      const response = await apis.GetTestUnits(
+        organizationId,
+        centerId,
+        query || ""
+      );
 
       if (response.success && response.data) {
         setUnits(response.data.units);
       } else {
         notifications.show({
           title: "Error",
-          message: response.message ,
+          message: response.message,
           color: "red",
         });
       }
@@ -44,7 +54,7 @@ const Units: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [query]);
+  }, [query, organizationId, centerId]);
 
   useEffect(() => {
     loadUnits();
@@ -68,12 +78,12 @@ const Units: React.FC = () => {
   const handleAddUnit = async (name: string) => {
     setSaving(true);
     try {
-      const response = await apis.AddTestUnits(name);
+      const response = await apis.AddTestUnits(organizationId, centerId, name);
 
       if (response.success) {
         notifications.show({
           title: "Success",
-          message: response.message ,
+          message: response.message,
           color: "blue",
         });
         setIsAddModalOpen(false);
@@ -81,7 +91,7 @@ const Units: React.FC = () => {
       } else {
         notifications.show({
           title: "Error",
-          message: response.message ,
+          message: response.message,
           color: "red",
         });
       }
@@ -103,12 +113,16 @@ const Units: React.FC = () => {
 
     setDeleting(true);
     try {
-      const response = await apis.DeleteTestUnits(unitToDelete.uid);
+      const response = await apis.DeleteTestUnits(
+        organizationId,
+        centerId,
+        unitToDelete.uid
+      );
 
       if (response.success) {
         notifications.show({
           title: "Success",
-          message: response.message ,
+          message: response.message,
           color: "blue",
         });
         setIsDeleteModalOpen(false);
@@ -117,7 +131,7 @@ const Units: React.FC = () => {
       } else {
         notifications.show({
           title: "Warning",
-          message: response.message ,
+          message: response.message,
           color: "yellow",
         });
         setIsDeleteModalOpen(false);

@@ -56,6 +56,7 @@ import type {
   DeleteUnitResponse,
   CreateTestPayload,
   CreateLabTestResponse,
+  DoctorSpecialitiesResponse,
 } from "./Types";
 import apiAgent from "./apiAgents";
 
@@ -438,6 +439,22 @@ class Apis {
   }
 
 
+
+  async GetDoctorSpecalities(
+    organization_id: string,
+    center_id: string,
+    provider_id: string
+  ): Promise<DoctorSpecialitiesResponse> {
+    const response = await apiAgent
+      .path(`/organizations/${organization_id}/centers/${center_id}/doctors/${provider_id}/specialities`)
+      .method("GET")
+      .execute();
+
+    return response.data as DoctorSpecialitiesResponse;
+  }
+
+
+
   async AddPatient(
     organization_id: string,
     center_id: string,
@@ -625,47 +642,49 @@ class Apis {
 
   // Test Categories APIs
   async GetTestCategories(
+    organization_id: string,
+    center_id: string,
     search?: string,
     pageNumber?: number,
     pageSize?: number
   ): Promise<TestCategoryListResponse> {
     const response = await apiAgent
-      .path(`diagnostics/categories`)
+      .path(`/organizations/${organization_id}/centers/${center_id}/diagnostics/categories`)
       .method("GET")
       .query({ search, pageNumber, pageSize })
       .execute();
     return response.data as TestCategoryListResponse;
   }
 
-  async AddTestCategory(payload: TestCategoryPayload): Promise<TestCategoryResponse> {
+  async AddTestCategory(organization_id: string, center_id: string, payload: TestCategoryPayload): Promise<TestCategoryResponse> {
     const response = await apiAgent
-      .path(`/diagnostics/categories`)
+      .path(`/organizations/${organization_id}/centers/${center_id}/diagnostics/categories`)
       .method("POST")
       .json(payload)
       .execute();
     return response.data as TestCategoryResponse;
   }
 
-  async UpdateTestCategory(id: string, payload: TestCategoryPayload): Promise<TestCategoryResponse> {
+  async UpdateTestCategory(organization_id: string, center_id: string, id: string, payload: TestCategoryPayload): Promise<TestCategoryResponse> {
     const response = await apiAgent
-      .path(`/diagnostics/categories/${id}`)
+      .path(`/organizations/${organization_id}/centers/${center_id}/diagnostics/categories/${id}`)
       .method("PATCH")
       .json(payload)
       .execute();
     return response.data as TestCategoryResponse;
   }
 
-  async DeleteTestCategory(id: string): Promise<{ success: boolean; message: string }> {
+  async DeleteTestCategory(organization_id: string, center_id: string, id: string): Promise<{ success: boolean; message: string }> {
     const response = await apiAgent
-      .path(`/diagnostics/categories/${id}`)
+      .path(`/organizations/${organization_id}/centers/${center_id}/diagnostics/categories/${id}`)
       .method("DELETE")
       .execute();
     return response.data as { success: boolean; message: string };
   }
 
-  async ReorderTestCategories(payload: ReorderCategoriesPayload): Promise<ReorderCategoriesResponse> {
+  async ReorderTestCategories(organization_id: string, center_id: string, payload: ReorderCategoriesPayload): Promise<ReorderCategoriesResponse> {
     const response = await apiAgent
-      .path(`diagnostics/categories/order-sequencing`)
+      .path(`/organizations/${organization_id}/centers/${center_id}/diagnostics/categories/order-sequencing`)
       .method("PATCH")
       .json(payload)
       .execute();
@@ -678,9 +697,9 @@ class Apis {
 
   //units
 
-  async AddTestUnits(name: string): Promise<CreateUnitResponse> {
+  async AddTestUnits(organization_id: string, center_id: string, name: string): Promise<CreateUnitResponse> {
     const response = await apiAgent
-      .path(`/diagnostics/units`)
+      .path(`/organizations/${organization_id}/centers/${center_id}/diagnostics/units`)
       .method("POST")
       .json({ name })
       .execute();
@@ -688,9 +707,9 @@ class Apis {
 
   }
 
-  async GetTestUnits(search: string): Promise<UnitsListResponse> {
+  async GetTestUnits(organization_id: string, center_id: string, search: string): Promise<UnitsListResponse> {
     const response = await apiAgent
-      .path(`/diagnostics/units`)
+      .path(`/organizations/${organization_id}/centers/${center_id}/diagnostics/units`)
       .method("GET")
       .query({ search })
       .execute();
@@ -698,17 +717,17 @@ class Apis {
 
   }
 
-  async DeleteTestUnits(id: string): Promise<DeleteUnitResponse> {
+  async DeleteTestUnits(organization_id: string, center_id: string, id: string): Promise<DeleteUnitResponse> {
     const response = await apiAgent
-      .path(`/diagnostics/units/${id}`)
+      .path(`/organizations/${organization_id}/centers/${center_id}/diagnostics/units/${id}`)
       .method("DELETE")
       .execute();
     return response.data as DeleteUnitResponse;
   }
   //lab databse
-  async AddTestToLabDatabase(payload: CreateTestPayload): Promise<CreateLabTestResponse> {
+  async AddTestToLabDatabase(organization_id: string, center_id: string, payload: CreateTestPayload): Promise<CreateLabTestResponse> {
     const response = await apiAgent
-      .path(`/diagnostics/lab/test`)
+      .path(`/organizations/${organization_id}/centers/${center_id}/diagnostics/lab/test`)
       .method("POST")
       .json(payload)
       .execute();
