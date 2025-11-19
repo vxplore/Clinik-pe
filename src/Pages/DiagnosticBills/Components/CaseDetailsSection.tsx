@@ -1,8 +1,19 @@
-import React, { useState } from "react";
-import { Button, Select, TextInput, Textarea, Collapse } from "@mantine/core";
+import React, { useState, useEffect } from "react";
+import {
+  Button,
+  Select,
+  TextInput,
+  Collapse,
+  MultiSelect,
+} from "@mantine/core";
+import { notifications } from "@mantine/notifications";
+import apis from "../../../APis/Api";
+import useAuthStore from "../../../GlobalStore/store";
+import useDropdownStore from "../../../GlobalStore/useDropdownStore";
 import AddNewModal from "./AddNewModal";
 import PaymentDetailsSection from "./PaymentDetailsSection";
 import type { PaymentDetails } from "./PaymentDetailsSection";
+import type { Provider, LabInvestigationItem } from "../../../APis/Types";
 import { IconPlus } from "@tabler/icons-react";
 
 interface InvestigationType {
@@ -12,9 +23,10 @@ interface InvestigationType {
 }
 
 interface PerInvestigationData {
-  investigations: string;
-  paid: string;
-  discount: string;
+  selectedItems: LabInvestigationItem[]; // Array of selected lab investigation objects
+  amount: string; // Total bill amount (calculated from selectedItems)
+  paid: string; // Amount actually paid
+  discount: string; // Per-investigation discount
   sampleCollectedAt: string;
   total?: number;
 }
@@ -35,30 +47,24 @@ interface CaseDetailsSectionProps {
 
 const investigationTypes: InvestigationType[] = [
   { id: "lab", name: "LAB", icon: "🔬" },
-  { id: "usg", name: "USG", icon: "📡" },
-  { id: "digital-xray", name: "DIGITAL XRAY", icon: "📷" },
-  { id: "xray", name: "XRAY", icon: "☢️" },
-  { id: "outsource-lab", name: "OUTSOURCE LAB", icon: "🏢" },
-  { id: "ecg", name: "ECG", icon: "❤️" },
-  { id: "ct-scan", name: "CT SCAN", icon: "🖥️" },
-  { id: "mri", name: "MRI", icon: "🧲" },
-  { id: "eps", name: "EPS", icon: "⚡" },
-  { id: "opg", name: "OPG", icon: "🦷" },
-  { id: "cardiology", name: "CARDIOLOGY", icon: "💓" },
-  { id: "eeg", name: "EEG", icon: "🧠" },
-  { id: "mammography", name: "MAMMOGRAPHY", icon: "🩺" },
 ];
 
 const CaseDetailsSection: React.FC<CaseDetailsSectionProps> = ({
   data,
   onChange,
 }) => {
-  const [referrerOptions, setReferrerOptions] = useState<
+  // If you want to keep separate referrers list, use referrerOptions, otherwise append newly added referrers to providerOptions
+  const [providerOptions, setProviderOptions] = useState<
     { value: string; label: string }[]
   >([]);
-  const [collectionAgentOptions, setCollectionAgentOptions] = useState<
-    { value: string; label: string }[]
-  >([]);
+  const [loadingProviders, setLoadingProviders] = useState(false);
+
+  const { organizationDetails } = useAuthStore();
+  const selectedCenter = useDropdownStore((s) => s.selectedCenter);
+  const orgId = organizationDetails?.organization_id;
+  const centerId = selectedCenter?.center_id || organizationDetails?.center_id;
+  const canFetchProviders = Boolean(orgId && centerId);
+
   const handleInvestigationClick = (typeId: string) => {
     const exists = data.selectedInvestigations.includes(typeId);
     if (exists) {
@@ -76,7 +82,8 @@ const CaseDetailsSection: React.FC<CaseDetailsSectionProps> = ({
       const newPer = { ...data.perInvestigationData };
       if (!newPer[typeId]) {
         newPer[typeId] = {
-          investigations: "",
+          selectedItems: [],
+          amount: "0",
           paid: "0",
           discount: "0",
           sampleCollectedAt: "",
@@ -89,6 +96,38 @@ const CaseDetailsSection: React.FC<CaseDetailsSectionProps> = ({
       });
     }
   };
+
+  // Fetch providers for the select (doctors)
+  useEffect(() => {
+    const fetchProviders = async () => {
+      if (!canFetchProviders) return;
+      setLoadingProviders(true);
+      try {
+        const response = await apis.GetAllProviders(
+          "doctor",
+          orgId!,
+          centerId!
+        );
+        const providersRaw = response?.data?.providers || [];
+        const options = Array.isArray(providersRaw)
+          ? providersRaw
+              .filter((p: Provider) => p.uid && p.name)
+              .map((p: Provider) => ({ value: p.uid as string, label: p.name }))
+          : [];
+        setProviderOptions(options);
+      } catch (err) {
+        console.error("Failed to fetch providers:", err);
+        notifications.show({
+          title: "Error",
+          message: "Failed to load providers",
+          color: "red",
+        });
+      } finally {
+        setLoadingProviders(false);
+      }
+    };
+    fetchProviders();
+  }, [orgId, centerId, canFetchProviders]);
 
   const [addNewModalOpen, setAddNewModalOpen] = useState(false);
   const [addNewModalContext, setAddNewModalContext] = useState<
@@ -108,35 +147,25 @@ const CaseDetailsSection: React.FC<CaseDetailsSectionProps> = ({
 
       <div className="space-y-4">
         {/* Referred By and Collection Centre */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
           <div>
             <label className="text-xs font-medium text-gray-700 mb-2 flex items-center gap-1">
-              <span className="text-red-500">*</span> Referred By
+              <span className="text-red-500">*</span> Provider
             </label>
             <div className="flex gap-2">
               <Select
-                data={referrerOptions}
+                data={providerOptions}
                 value={data.referredBy}
                 onChange={(value) => onChange({ referredBy: value || "" })}
-                placeholder="Select referrer"
+                placeholder="Select provider"
                 searchable
                 className="flex-1"
+                disabled={loadingProviders}
               />
-              <Button
-                variant="subtle"
-                leftSection={<IconPlus size={16} />}
-                className="shrink-0"
-                onClick={() => {
-                  setAddNewModalContext("referredBy");
-                  setAddNewModalOpen(true);
-                }}
-              >
-                Add New
-              </Button>
             </div>
           </div>
 
-          <div>
+          {/* <div>
             <label className="text-xs font-medium text-gray-700 mb-2 flex items-center gap-1">
               <span className="text-red-500">*</span> Collection centre
             </label>
@@ -146,11 +175,11 @@ const CaseDetailsSection: React.FC<CaseDetailsSectionProps> = ({
               onChange={(value) => onChange({ collectionCentre: value || "" })}
               placeholder="Select centre"
             />
-          </div>
+          </div> */}
         </div>
 
         {/* Sample Collection Agent */}
-        <div>
+        {/* <div>
           <label className="text-xs font-medium text-gray-700 mb-2 block">
             Sample collection agent
           </label>
@@ -180,7 +209,7 @@ const CaseDetailsSection: React.FC<CaseDetailsSectionProps> = ({
               Edit
             </Button>
           </div>
-        </div>
+        </div> */}
         <AddNewModal
           open={addNewModalOpen}
           title={
@@ -249,18 +278,10 @@ const CaseDetailsSection: React.FC<CaseDetailsSectionProps> = ({
                 const label = `${(dataObj.title as string) || ""} ${
                   (dataObj.firstName as string) || ""
                 } ${(dataObj.lastName as string) || ""}`.trim();
-                setReferrerOptions((opts) => [...opts, { value: id, label }]);
+                setProviderOptions((opts) => [...opts, { value: id, label }]);
                 onChange({ referredBy: id });
-              } else if (p.type === "collection-agent" && p.data) {
-                const dataObj = p.data;
-                const id = `collection-agent-${Date.now()}`;
-                const label = `${(dataObj.name as string) || ""}`.trim();
-                setCollectionAgentOptions((opts) => [
-                  ...opts,
-                  { value: id, label },
-                ]);
-                onChange({ sampleCollectionAgent: id });
               }
+              // Collection agent handling removed as it's commented out
             }
           }}
         />
@@ -298,6 +319,7 @@ const CaseDetailsSection: React.FC<CaseDetailsSectionProps> = ({
             key={typeId}
             investigationType={typeId}
             data={data.perInvestigationData[typeId]}
+            discountType={data.payment?.discountType}
             onChange={(d) => {
               const newPer = {
                 ...data.perInvestigationData,
@@ -337,6 +359,7 @@ const CaseDetailsSection: React.FC<CaseDetailsSectionProps> = ({
 interface InvestigationFormProps {
   investigationType: string;
   data: PerInvestigationData;
+  discountType?: "rupee" | "percent";
   onChange: (d: Partial<PerInvestigationData>) => void;
   onClose: () => void;
   onOpenAddNewModal?: () => void;
@@ -345,6 +368,7 @@ interface InvestigationFormProps {
 const InvestigationForm: React.FC<InvestigationFormProps> = ({
   investigationType,
   data,
+  discountType,
   onChange,
   onClose,
   onOpenAddNewModal,
@@ -354,6 +378,41 @@ const InvestigationForm: React.FC<InvestigationFormProps> = ({
   const [showSampleInput, setShowSampleInput] = useState(
     Boolean(formData.sampleCollectedAt)
   );
+
+  const { organizationDetails } = useAuthStore();
+  const selectedCenter = useDropdownStore((s) => s.selectedCenter);
+  const orgId = organizationDetails?.organization_id;
+  const centerId = selectedCenter?.center_id || organizationDetails?.center_id;
+  const canFetchData = Boolean(orgId && centerId);
+
+  // Lab investigations state
+  const [labInvestigationsList, setLabInvestigationsList] = useState<
+    LabInvestigationItem[]
+  >([]);
+  const [loadingLabInvestigations, setLoadingLabInvestigations] =
+    useState(false);
+  // Track selected investigation UIDs locally
+  const [selectedInvestigationUids, setSelectedInvestigationUids] = useState<
+    string[]
+  >([]);
+
+  // Fetch lab investigations when form mounts
+  useEffect(() => {
+    const fetchLabInvestigations = async () => {
+      if (!canFetchData) return;
+      setLoadingLabInvestigations(true);
+      try {
+        const response = await apis.GetLabInvestigations(orgId!, centerId!);
+        const investigations = response?.data?.lab_investigations || [];
+        setLabInvestigationsList(investigations);
+      } catch (err) {
+        console.error("Failed to fetch lab investigations:", err);
+      } finally {
+        setLoadingLabInvestigations(false);
+      }
+    };
+    fetchLabInvestigations();
+  }, [orgId, centerId, canFetchData]);
 
   const formatDate = (iso?: string) => {
     if (!iso) return "";
@@ -392,33 +451,70 @@ const InvestigationForm: React.FC<InvestigationFormProps> = ({
           <label className="text-xs font-medium text-gray-700 mb-2 block">
             {getInvestigationTitle()}
           </label>
-          <Textarea
-            value={formData.investigations}
-            onChange={(e) =>
-              onChange({ investigations: e.currentTarget.value })
-            }
-            placeholder="Enter investigations..."
-            minRows={3}
+          <MultiSelect
+            data={labInvestigationsList.map((inv) => ({
+              value: inv.uid,
+              label: `${inv.short_name || inv.name} - Rs.${inv.amount}`,
+            }))}
+            value={selectedInvestigationUids}
+            onChange={(selected) => {
+              // Update tracked UIDs
+              setSelectedInvestigationUids(selected);
+
+              // Get full LabInvestigationItem objects for selected UIDs
+              const selectedInvestigations = selected
+                .map((uid) => labInvestigationsList.find((i) => i.uid === uid))
+                .filter(
+                  (item): item is LabInvestigationItem => item !== undefined
+                );
+
+              // Calculate total amount from ALL currently selected investigations
+              const totalAmount = selectedInvestigations.reduce(
+                (sum, item) => sum + (item.amount || 0),
+                0
+              );
+
+              // Auto-populate amount and paid with total of ALL selected investigations
+              onChange({
+                selectedItems: selectedInvestigations,
+                amount: String(totalAmount),
+                paid: String(totalAmount),
+              });
+            }}
+            placeholder="Select investigations"
+            searchable
+            clearable
+            disabled={loadingLabInvestigations}
           />
-          <div className="flex gap-2 mt-2">
-            <Button
-              size="xs"
-              leftSection={<IconPlus size={14} />}
-              onClick={() => onOpenAddNewModal && onOpenAddNewModal()}
-            >
-              Add New
-            </Button>
-            <Button size="xs" variant="subtle">
-              Ratelist
-            </Button>
-          </div>
+
           <div className="text-xs text-gray-500 mt-2">
-            Total: Rs. 0 , Due: Rs. 0
+            Amount: Rs. {Number(formData.amount ?? 0)} , Paid: Rs.{" "}
+            {Number(formData.paid ?? 0)} , Discount:{" "}
+            {discountType === "percent"
+              ? `${Number(formData.discount ?? 0)} %`
+              : `Rs. ${Number(formData.discount ?? 0)}`}
           </div>
         </div>
 
-        {/* Paid and Discount */}
-        <div className="grid grid-cols-2 gap-4">
+        {/* Amount, Paid and Discount */}
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <label className="text-xs font-medium text-gray-700 mb-2 flex items-center gap-1">
+              <span className="text-red-500">*</span> Amount
+            </label>
+            <TextInput
+              value={formData.amount}
+              onChange={(e) => {
+                const newAmount = e.currentTarget.value;
+                // When amount changes, also update paid to match
+                onChange({ amount: newAmount, paid: newAmount });
+              }}
+              type="number"
+              min="0"
+              placeholder="100"
+            />
+          </div>
+
           <div>
             <label className="text-xs font-medium text-gray-700 mb-2 flex items-center gap-1">
               <span className="text-red-500">*</span> Paid
@@ -428,6 +524,7 @@ const InvestigationForm: React.FC<InvestigationFormProps> = ({
               onChange={(e) => onChange({ paid: e.currentTarget.value })}
               type="number"
               min="0"
+              placeholder="100"
             />
           </div>
 
@@ -440,6 +537,12 @@ const InvestigationForm: React.FC<InvestigationFormProps> = ({
               onChange={(e) => onChange({ discount: e.currentTarget.value })}
               type="number"
               min="0"
+              placeholder="0"
+              rightSection={
+                <span className="text-xs">
+                  {discountType === "percent" ? "%" : "Rs"}
+                </span>
+              }
             />
           </div>
         </div>

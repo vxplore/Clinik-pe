@@ -53,6 +53,7 @@ import AddMultipleNestedTestPage from "./Pages/TestDatabase/AddMultipleNestedTes
 import TestPanelsDetails from "./Pages/TestPanels/TestPanelsDetails";
 import DiagnosticBillsPage from "./Pages/DiagnosticBills/DiagnosticBillsPage";
 import AddDiagnosticBillsPage from "./Pages/DiagnosticBills/AddDiagnosticBillsPage";
+import InterpretationPage from "./Pages/interpretation/InterpretationPage";
 
 function AppContents() {
   return (
@@ -118,6 +119,7 @@ function AppContents() {
         <Route path="/test-database/add" element={<AddTestPage />} />
         <Route path="/bills" element={<DiagnosticBillsPage />} />
         <Route path="/bills/add" element={<AddDiagnosticBillsPage />} />
+        <Route path="/interpretation" element={<InterpretationPage />} />
         <Route
           path="/test-database/add-multiple"
           element={<AddMultipleTestPage />}

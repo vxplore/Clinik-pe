@@ -1,155 +1,245 @@
-import React, { useMemo, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { DataTable, type DataTableColumn } from "mantine-datatable";
-import { Button, Popover, TextInput, Select } from "@mantine/core";
+import { Button, Popover, TextInput } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import apis from "../../APis/Api";
-import type { TestPackagePayload } from "../../APis/Types";
 import { IconDots, IconPencil } from "@tabler/icons-react";
-import type { TestPackageRow } from "../../APis/Types";
+
+import apis from "../../APis/Api";
+import useAuthStore from "../../GlobalStore/store";
+
+import type {
+  TestPackageRow,
+  TestPackageUpdatePayload,
+} from "../../APis/Types";
+
 import EditPackageDrawer from "./Components/EditPackageDrawer";
 import DeleteConfirm from "./Components/DeleteConfirm";
-// navigate not required here — drawer handles add/edit
 
 const TestPackage: React.FC = () => {
+  const { organizationDetails } = useAuthStore();
+
   const [page, setPage] = useState(1);
-  const [pageSize, _setPageSize] = useState(10);
+  const [pageSize] = useState(5);
+  const [totalRecords, setTotalRecords] = useState(0);
   const [query, setQuery] = useState("");
+
   const [packages, setPackages] = useState<TestPackageRow[]>([]);
-  const [loadingPackages, setLoadingPackages] = useState(false);
+  const [loading, setLoading] = useState(false);
+
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
   const [editingRow, setEditingRow] = useState<TestPackageRow | null>(null);
   const [editingOpen, setEditingOpen] = useState(false);
+
   const [deletingRow, setDeletingRow] = useState<TestPackageRow | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
-  const filtered = useMemo(() => {
-    let data = packages;
-    if (query) {
-      const q = query.toLowerCase();
-      data = data.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.included.toLowerCase().includes(q)
-      );
-    }
-    return data;
-  }, [query, packages]);
+  // ---------------------------------------
+  // Server-side pagination + Filtering
+  // ---------------------------------------
+  // rows = packages (server returns the requested page)
+  const rows = packages;
+  const total = totalRecords;
 
-  const total = filtered.length;
-  const rows = filtered.slice((page - 1) * pageSize, page * pageSize);
+  // ---------------------------------------
+  // Save (create/update)
+  // ---------------------------------------
+  const handleSavePackage = async (
+    row: TestPackageRow,
+    removeTests?: string[],
+    removePanels?: string[]
+  ) => {
+    setSaving(true);
 
-  const handleSavePackage = (row: TestPackageRow) => {
-    (async () => {
-      setSaving(true);
-      try {
-        const payload: TestPackagePayload = {
-          name: row.name,
-          fee: row.fee,
-          gender: row.gender,
-          tests: row.tests,
-          panels: row.panels,
+    try {
+      const price = Number(row.price || row.fee || 0);
+      const tests =
+        row.tests?.map((t) => (typeof t === "string" ? { test_id: t } : t)) ||
+        [];
+      const panels =
+        row.panels?.map((p) => (typeof p === "string" ? { panel_id: p } : p)) ||
+        [];
+
+      const payload = {
+        name: row.name,
+        price,
+        bill_only_for_gender: (
+          row.bill_only_for_gender ||
+          row.gender ||
+          "both"
+        ).toLowerCase() as "male" | "female" | "both",
+
+        tests,
+        panels,
+      };
+
+      const id = row.uid || row.id;
+
+      if (packages.some((p) => (p.uid || p.id) === id)) {
+        // update
+        const orgId = organizationDetails?.organization_id;
+        const centerId = organizationDetails?.center_id;
+
+        if (!orgId || !centerId) throw new Error("Organization not found");
+
+        const updatePayload: TestPackageUpdatePayload = {
+          name: payload.name,
+          price: payload.price,
+          bill_only_for_gender: payload.bill_only_for_gender,
+          tests: tests,
+          panels: panels,
+          remove_tests: removeTests || [],
+          remove_panels: removePanels || [],
         };
-        if (packages.some((p) => p.id === row.id)) {
-          // update
-          await apis.UpdateTestPackage(row.id, payload);
-          setPackages((prev) => prev.map((p) => (p.id === row.id ? row : p)));
-          notifications.show({
-            title: "Updated",
-            message: "Package updated",
-            color: "green",
-          });
-        } else {
-          // create
-          const resp = await apis.AddTestPackage(payload);
-          // if response returns object with package, use it; otherwise use the row created locally
-          const newRow = resp?.data?.package || row;
-          setPackages((prev) => [newRow, ...prev]);
-          notifications.show({
-            title: "Saved",
-            message: "Package added",
-            color: "green",
-          });
-        }
-      } catch (err) {
-        console.error(err);
+        await apis.UpdateTestPackage(orgId, centerId, id!, updatePayload);
+        // After update, refetch packages to get fresh data from server
+        await fetchPackages();
+
+        notifications.show({
+          title: "Updated",
+          message: "Package updated successfully.",
+          color: "green",
+        });
+      } else {
+        // create
+        const orgId = organizationDetails?.organization_id;
+        const centerId = organizationDetails?.center_id;
+
+        if (!orgId || !centerId) throw new Error("Organization not found");
+
+        await apis.AddTestPackage(orgId, centerId, payload);
+
+        // After creation, re-fetch packages to avoid adding any mock/local-only row
+        await fetchPackages();
+
+        notifications.show({
+          title: "Saved",
+          message: "Package added successfully.",
+          color: "green",
+        });
+      }
+    } catch (err) {
+      console.error(err);
+
+      notifications.show({
+        title: "Error",
+        message: "Failed to save package. Changes not applied.",
+        color: "red",
+      });
+
+      // fallback local update - do not add new mock rows; update only if package exists locally
+      const id = row.uid || row.id;
+      setPackages((prev) => {
+        const exists = prev.some((p) => (p.uid || p.id) === id);
+        return exists
+          ? prev.map((p) => ((p.uid || p.id) === id ? row : p))
+          : prev;
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ---------------------------------------
+  // Delete
+  // ---------------------------------------
+  const handleDeleteConfirm = async (id: string) => {
+    setDeleting(true);
+
+    try {
+      await apis.DeleteTestPackage(id);
+      // re-fetch from server after delete to get up-to-date list
+      await fetchPackages();
+
+      notifications.show({
+        title: "Deleted",
+        message: "Package removed successfully.",
+        color: "red",
+      });
+    } catch (err) {
+      console.error(err);
+
+      // Do not remove locally if delete fails to avoid local-only changes
+      notifications.show({
+        title: "Error",
+        message: "Failed to delete package. Please try again.",
+        color: "red",
+      });
+    } finally {
+      setDeletingRow(null);
+      setDeleting(false);
+    }
+  };
+
+  // ---------------------------------------
+  // Fetch packages helper
+  // ---------------------------------------
+  const fetchPackages = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const orgId = organizationDetails?.organization_id;
+      const centerId = organizationDetails?.center_id;
+      if (!orgId || !centerId) {
         notifications.show({
           title: "Error",
-          message: "Failed to save package. Falling back to local change.",
+          message: "Organization or center not found",
           color: "red",
         });
-        // fallback: still update local state
-        setPackages((prev) => {
-          const found = prev.some((p) => p.id === row.id);
-          if (found) return prev.map((p) => (p.id === row.id ? row : p));
-          return [row, ...prev];
-        });
-      } finally {
-        setSaving(false);
+        return;
       }
-    })();
-  };
-
-  const handleDeleteConfirm = (id: string) => {
-    (async () => {
-      setDeleting(true);
-      try {
-        await apis.DeleteTestPackage(id);
-        setPackages((prev) => prev.filter((p) => p.id !== id));
-        setDeletingRow(null);
-        notifications.show({
-          title: "Deleted",
-          message: "Package removed",
-          color: "red",
-        });
-      } catch (err) {
-        console.error(err);
-        // fallback to removing locally
-        setPackages((prev) => prev.filter((p) => p.id !== id));
-        setDeletingRow(null);
-        notifications.show({
-          title: "Deleted (local)",
-          message: "Package removed locally",
-          color: "yellow",
-        });
-      } finally {
-        setDeleting(false);
+      const resp = await apis.GetTestPackages(
+        query,
+        page,
+        pageSize,
+        orgId,
+        centerId
+      );
+      if (resp?.data?.packages) {
+        setPackages(resp.data.packages);
+        const totalFromResp =
+          resp.data.pagination?.totalRecords ?? resp.data.packages?.length ?? 0;
+        setTotalRecords(totalFromResp);
       }
-    })();
-  };
+    } catch (err) {
+      console.warn("GetTestPackages failed:", err);
+      notifications.show({
+        title: "Error",
+        message: "Failed to load test packages.",
+        color: "red",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [organizationDetails, page, pageSize, query]);
 
-  // Load test packages from API when mounted
-  React.useEffect(() => {
+  // Load packages on mount and when organization changes
+  useEffect(() => {
     let mounted = true;
-    (async () => {
-      setLoadingPackages(true);
-      try {
-        const resp = await apis.GetTestPackages();
-        if (mounted && resp?.data?.packages) setPackages(resp.data.packages);
-      } catch (err) {
-        console.warn("GetTestPackages failed:", err);
-        notifications.show({
-          title: "Error",
-          message: "Failed to load test packages",
-          color: "red",
-        });
-        // fallback: keep local state unchanged
-      } finally {
-        setLoadingPackages(false);
-      }
-    })();
-
+    if (!mounted) return;
+    fetchPackages();
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [fetchPackages, page, pageSize, query]);
 
+  // Adjust page if totalRecords has changed and current page is out of range
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
+    if (page > totalPages) setPage(totalPages);
+  }, [totalRecords, page, pageSize]);
+
+  // ---------------------------------------
+  // Table Columns
+  // ---------------------------------------
   const columns: DataTableColumn<TestPackageRow>[] = [
     {
       accessor: "sno",
       title: "S.NO.",
-      render: (_r, i) => <div>{(page - 1) * pageSize + (i + 1)}.</div>,
-      width: 100,
+      width: 80,
+      render: (_row, index) => (
+        <div>{(page - 1) * pageSize + (index + 1)}.</div>
+      ),
     },
     {
       accessor: "name",
@@ -158,22 +248,32 @@ const TestPackage: React.FC = () => {
     },
     {
       accessor: "fee",
-      title: "Fee",
-      width: 100,
-      render: (r) => <div>{r.fee}</div>,
+      title: "Price",
+      width: 90,
+      render: (r) => <div>{r.price || r.fee}</div>,
     },
     {
       accessor: "gender",
       title: "Gender",
       width: 80,
-      render: (r) => <div className="text-sm text-gray-600">{r.gender}</div>,
+      render: (r) => (
+        <div className="text-sm text-gray-600">
+          {r.bill_only_for_gender || r.gender}
+        </div>
+      ),
     },
     {
       accessor: "included",
       title: "Tests",
       render: (r) => (
         <div className="text-sm text-gray-600 max-w-xs truncate">
-          {r.included}
+          {Array.isArray(r.tests)
+            ? r.tests
+                .map((t) =>
+                  typeof t === "string" ? t : t.test_name || t.test_id
+                )
+                .join(", ")
+            : r.included || ""}
         </div>
       ),
     },
@@ -182,8 +282,12 @@ const TestPackage: React.FC = () => {
       title: "Panels",
       render: (r) => (
         <div className="text-sm text-gray-600 max-w-xs truncate">
-          {Array.isArray(r.panels) && r.panels.length
-            ? r.panels.join(", ")
+          {Array.isArray(r.panels)
+            ? r.panels
+                .map((p) =>
+                  typeof p === "string" ? p : p.panel_name || p.panel_id
+                )
+                .join(", ")
             : ""}
         </div>
       ),
@@ -192,94 +296,88 @@ const TestPackage: React.FC = () => {
       accessor: "action",
       title: "ACTION",
       width: 100,
-      render: (r) => {
-        return (
-          <div className="flex items-center gap-2">
-            <button
-              className="text-blue-600 text-sm"
-              onClick={() => {
-                setEditingRow(r);
-                setEditingOpen(true);
-              }}
-            >
-              <IconPencil size={16} />
-            </button>
-            <Popover position="bottom" withArrow shadow="md">
-              <Popover.Target>
-                <button className="p-1 text-gray-400 hover:text-gray-600">
-                  <IconDots className="rotate-90" />
-                </button>
-              </Popover.Target>
-              <Popover.Dropdown>
-                <div className="flex flex-col gap-2 min-w-max">
-                  <Button
-                    variant="subtle"
-                    color="red"
-                    size="xs"
-                    onClick={() => {
-                      setDeletingRow(r);
-                      setDeleteModalOpen(true);
-                    }}
-                  >
-                    Remove
-                  </Button>
-                </div>
-              </Popover.Dropdown>
-            </Popover>
-          </div>
-        );
-      },
+      render: (r) => (
+        <div className="flex items-center gap-2">
+          <button
+            className="text-blue-600"
+            onClick={() => {
+              setEditingRow(r);
+              setEditingOpen(true);
+            }}
+          >
+            <IconPencil size={16} />
+          </button>
+
+          <Popover position="bottom" withArrow shadow="md">
+            <Popover.Target>
+              <button className="p-1 text-gray-400 hover:text-gray-600">
+                <IconDots className="rotate-90" />
+              </button>
+            </Popover.Target>
+
+            <Popover.Dropdown>
+              <Button
+                variant="subtle"
+                color="red"
+                size="xs"
+                onClick={() => {
+                  setDeletingRow(r);
+                  setDeleteModalOpen(true);
+                }}
+              >
+                Remove
+              </Button>
+            </Popover.Dropdown>
+          </Popover>
+        </div>
+      ),
     },
   ];
 
+  // ---------------------------------------
+  // Render
+  // ---------------------------------------
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 ring-1 ring-gray-100">
+      {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <div className="flex gap-4">
-          <h2 className="text-lg font-semibold text-gray-800">Test packages</h2>
-          <div className="ml-auto w-64">
-            <TextInput
-              placeholder="Search in page"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </div>
-        </div>
+        <h2 className="text-lg font-semibold text-gray-800">Test Packages</h2>
 
-        <Button
-          onClick={() => {
-            setEditingRow(null); // clear any selected row
-            setEditingOpen(true); // open drawer in add mode
-          }}
-          variant="filled"
-          color="blue"
-          disabled={loadingPackages}
-        >
-          + Add new
-        </Button>
+        <div className="flex items-center gap-3">
+          <TextInput
+            placeholder="Search in page"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setPage(1);
+            }}
+            className="w-64"
+          />
+
+          <Button
+            variant="filled"
+            color="blue"
+            onClick={() => {
+              setEditingRow(null);
+              setEditingOpen(true);
+            }}
+            disabled={loading}
+          >
+            + Add New
+          </Button>
+        </div>
       </div>
 
-      {/* <div className="mb-3">
-        <div className="flex items-center gap-4">
-          <div className="ml-auto w-64">
-            <TextInput
-              placeholder="Search in page"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </div>
-        </div>
-      </div> */}
-
+      {/* Table */}
       <DataTable
         records={rows}
         columns={columns}
         highlightOnHover
         className="text-sm"
-        striped={false}
         idAccessor="id"
       />
 
+      {/* Edit Drawer */}
       <EditPackageDrawer
         opened={editingOpen}
         onClose={() => {
@@ -291,20 +389,26 @@ const TestPackage: React.FC = () => {
         loading={saving}
       />
 
+      {/* Delete Modal */}
       <DeleteConfirm
         opened={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
-        onConfirm={() => deletingRow && handleDeleteConfirm(deletingRow.id)}
+        onConfirm={() =>
+          deletingRow &&
+          handleDeleteConfirm(deletingRow.uid || deletingRow.id || "")
+        }
         itemName={deletingRow?.name}
         loading={deleting}
       />
 
+      {/* Pagination */}
       <div className="flex items-center justify-between text-sm text-gray-500 mt-4">
         <div>
-          Showing {(page - 1) * pageSize + 1} to{" "}
+          Showing {total === 0 ? 0 : (page - 1) * pageSize + 1} to{" "}
           {Math.min(page * pageSize, total)} of {total} entries
         </div>
-        <div className="inline-flex items-center gap-2">
+
+        <div className="flex items-center gap-3">
           <button
             className="px-3 py-1 border rounded text-gray-600"
             disabled={page === 1}
@@ -312,9 +416,10 @@ const TestPackage: React.FC = () => {
           >
             Previous
           </button>
-          <div className="inline-flex items-center gap-1">
+
+          <div className="flex gap-1">
             {Array.from(
-              { length: Math.max(1, Math.ceil(total / pageSize)) },
+              { length: Math.ceil(total / pageSize) || 1 },
               (_, i) => i + 1
             ).map((n) => (
               <button
@@ -329,19 +434,9 @@ const TestPackage: React.FC = () => {
             ))}
           </div>
 
-          <Select
-            value={String(pageSize)}
-            onChange={(val) => {
-              _setPageSize(Number(val || 10));
-              setPage(1);
-            }}
-            data={["10", "20", "50"]}
-            className="w-24"
-          />
-
           <button
             className="px-3 py-1 border rounded text-gray-600"
-            disabled={page >= Math.ceil(Math.max(1, total) / pageSize)}
+            disabled={page >= Math.ceil(total / pageSize)}
             onClick={() => setPage(page + 1)}
           >
             Next

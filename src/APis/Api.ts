@@ -43,7 +43,6 @@ import type {
   TestPackageListResponse,
   TestPanelPayload,
   TestPanelResponse,
-  TestPanelListResponse,
   ReorderPanelsPayload,
   ReorderPanelsResponse,
   TestCategoryPayload,
@@ -64,6 +63,10 @@ import type {
   UpdatePanelPayload,
   PanelDetailsResponse,
   LabTest,
+  TestPackageUpdatePayload,
+  LabInvestigationsResponse,
+  InvoicePayload,
+  BookingResponse,
 } from "./Types";
 import apiAgent from "./apiAgents";
 
@@ -588,30 +591,66 @@ class Apis {
     return response.data as CreateAppointmentResponse;
   }
 
-  // Test Packages APIs
-  async GetTestPackages(): Promise<TestPackageListResponse> {
-    const response = await apiAgent.path(`/test-packages`)
+
+
+
+
+
+
+  async GetTestPackages(
+    search: string,
+    pageNumber: number,
+    pageSize: number,
+    organization_id: string, center_id: string): Promise<TestPackageListResponse> {
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/packages`)
       .method("GET")
+      .query({ search, pageNumber, pageSize })
       .execute();
     return response.data as TestPackageListResponse;
   }
 
-  async AddTestPackage(payload: TestPackagePayload): Promise<TestPackageResponse> {
-    const response = await apiAgent.path(`/test-packages`)
+
+
+
+
+
+
+
+  async AddTestPackage(organization_id: string, center_id: string, payload: TestPackagePayload): Promise<TestPackageResponse> {
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/packages`)
       .method("POST")
       .json(payload)
       .execute();
     return response.data as TestPackageResponse;
   }
 
-  async UpdateTestPackage(id: string, payload: TestPackagePayload): Promise<TestPackageResponse> {
+
+
+
+
+
+
+
+
+
+  async UpdateTestPackage(
+    organization_id: string,
+    center_id: string,
+    id: string, payload: TestPackageUpdatePayload): Promise<TestPackageResponse> {
     const response = await apiAgent
-      .path(`/test-packages/${id}`)
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/packages/${id}`)
       .method("PATCH")
       .json(payload)
       .execute();
     return response.data as TestPackageResponse;
   }
+
+
+
+
+
 
   async DeleteTestPackage(id: string): Promise<{ success: boolean; message: string }> {
     const response = await apiAgent.path(`/test-packages/${id}`).method("DELETE").execute();
@@ -639,6 +678,8 @@ class Apis {
       .execute();
     return response.data as PanelsListResponse;
   }
+
+  //working
   async AddTestPanels(
     payload: CreatePanelPayload,
     organization_id: string, center_id: string): Promise<PanelsListResponse> {
@@ -697,13 +738,15 @@ class Apis {
   }
 
 
-  async DeleteTestPanel(
-    organization_id: string,
-    center_id: string,
-    id: string): Promise<{ success: boolean; message: string }> {
-    const response = await apiAgent.path(`/test-panels/${id}`).method("DELETE").execute();
-    return response.data as { success: boolean; message: string };
-  }
+
+  //not needed for now
+  // async DeleteTestPanel(
+  //   organization_id: string,
+  //   center_id: string,
+  //   id: string): Promise<{ success: boolean; message: string }> {
+  //   const response = await apiAgent.path(`/test-panels/${id}`).method("DELETE").execute();
+  //   return response.data as { success: boolean; message: string };
+  // }
 
 
   async ReorderTestPanelsDetails(
@@ -825,11 +868,11 @@ class Apis {
 
   //units
 
-  async AddTestUnits(organization_id: string, center_id: string, name: string): Promise<CreateUnitResponse> {
+  async AddTestUnits(organization_id: string, center_id: string, name: string, description?: string): Promise<CreateUnitResponse> {
     const response = await apiAgent
       .path(`/organizations/${organization_id}/centers/${center_id}/diagnostics/units`)
       .method("POST")
-      .json({ name })
+      .json({ name, description })
       .execute();
     return response.data as CreateUnitResponse;
 
@@ -896,6 +939,87 @@ class Apis {
     return response.data as LabTest;
   }
 
+
+  //test ones
+  async GetTestInterpretations(
+    organization_id: string,
+    center_id: string
+  ): Promise<FeeManagementResponse> {
+    const response = await apiAgent
+      .path(`/organizations/${organization_id}/centers/${center_id}/diagnostics/interpretations/tests`)
+      .method("GET")
+      .execute();
+    return response.data as FeeManagementResponse;
+  }
+
+  async UpdateTestInterpretations(
+    organization_id: string,
+    center_id: string,
+    uid: string,
+    interpretation: string
+  ): Promise<FeeManagementResponse> {
+    const response = await apiAgent
+      .path(`/organizations/${organization_id}/centers/${center_id}/diagnostics/interpretations/tests/${uid}`)
+      .method("PATCH")
+      .json({ interpretation })
+      .execute();
+    return response.data as FeeManagementResponse;
+  }
+
+
+  //panel ones 
+
+  async GetPanelInterpretations(
+    organization_id: string,
+    center_id: string
+  ): Promise<FeeManagementResponse> {
+    const response = await apiAgent
+      .path(`/organizations/${organization_id}/centers/${center_id}/diagnostics/interpretations/panels`)
+      .method("GET")
+      .execute();
+    return response.data as FeeManagementResponse;
+  }
+
+  async UpdatePanelInterpretations(
+    organization_id: string,
+    center_id: string,
+    uid: string,
+    interpretation: string
+  ): Promise<FeeManagementResponse> {
+    const response = await apiAgent
+      .path(`/organizations/${organization_id}/centers/${center_id}/diagnostics/interpretations/panels/${uid}`)
+      .method("PATCH")
+      .json({ interpretation })
+      .execute();
+    return response.data as FeeManagementResponse;
+  }
+
+
+
+  async GetLabInvestigations(
+    organization_id: string,
+    center_id: string
+  ): Promise<LabInvestigationsResponse> {
+    const response = await apiAgent
+      .path(`/organizations/${organization_id}/centers/${center_id}/diagnostics/bookings/lab-investigations`)
+      .method("GET")
+      .execute();
+    return response.data as LabInvestigationsResponse;
+  }
+
+
+  async Addbilling(
+    organization_id: string,
+    center_id: string,
+    payload: InvoicePayload
+  ): Promise<BookingResponse> {
+    const response = await apiAgent
+      .path(`/organizations/${organization_id}/centers/${center_id}/diagnostics/bookings`)
+      .method("POST")
+      .json(payload)
+      .execute();
+    return response.data as BookingResponse;
+  }
 
 
 }

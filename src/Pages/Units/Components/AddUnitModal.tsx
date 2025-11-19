@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Button, TextInput } from "@mantine/core";
+import { Button, TextInput, Textarea } from "@mantine/core";
 import { IconX } from "@tabler/icons-react";
 
 interface AddUnitModalProps {
   opened: boolean;
   onClose: () => void;
-  onSave: (name: string) => void;
+  onSave: (name: string, description?: string) => void;
   loading: boolean;
 }
 
@@ -17,17 +17,19 @@ const AddUnitModal: React.FC<AddUnitModalProps> = ({
   loading,
 }) => {
   const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
 
   useEffect(() => {
     if (!opened) {
       setName("");
+      setDescription("");
     }
   }, [opened]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (name.trim()) {
-      onSave(name.trim());
+      onSave(name.trim(), description.trim());
     }
   };
 
@@ -65,6 +67,15 @@ const AddUnitModal: React.FC<AddUnitModalProps> = ({
               required
               autoFocus
             />
+            <div className="mt-4">
+              <Textarea
+                label="Description"
+                placeholder="Enter description (optional)"
+                value={description}
+                onChange={(e) => setDescription(e.currentTarget.value)}
+                minRows={3}
+              />
+            </div>
           </div>
 
           {/* Footer */}

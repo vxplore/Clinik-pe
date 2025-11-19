@@ -75,10 +75,15 @@ const Units: React.FC = () => {
   const rows = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   // Add new unit
-  const handleAddUnit = async (name: string) => {
+  const handleAddUnit = async (name: string, description?: string) => {
     setSaving(true);
     try {
-      const response = await apis.AddTestUnits(organizationId, centerId, name);
+      const response = await apis.AddTestUnits(
+        organizationId,
+        centerId,
+        name,
+        description
+      );
 
       if (response.success) {
         notifications.show({

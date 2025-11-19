@@ -794,22 +794,27 @@ export type CreateAppointmentResponse = {
 };
 //new today 
 export interface TestPackageRow {
-  id: string;
+  uid?: string;  // API uses uid
+  id?: string;   // keep for backwards compat
   name: string;
-  fee: string;
-  gender: "Male" | "Female" | "Both";
-  included: string;
-  tests?: string[];
-  panels?: string[];
+  price?: string | number;  // API returns price
+  fee?: string;  // keep for backwards compat
+  bill_only_for_gender?: "male" | "female" | "both";  // API key
+  gender?: "Male" | "Female" | "Both";  // keep for backwards compat
+  included?: string;
+  status?: string;
+  tests?: { test_id: string; test_name?: string }[]; // object array from API
+  panels?: { panel_id: string; panel_name?: string }[]; // object array from API
 }
 
 export type TestPackagePayload = {
   name: string;
-  fee: string;
-  gender: "Male" | "Female" | "Both";
+  price: number | string; // price instead of fee
+  bill_only_for_gender: "male" | "female" | "both"; // exact key requested
   included?: string;
-  tests?: string[];
-  panels?: string[];
+  // Each test/panel should be an object per user request
+  tests?: { test_id: string }[];
+  panels?: { panel_id: string }[];
 };
 
 export type TestPackageResponse = {
@@ -827,6 +832,12 @@ export type TestPackageListResponse = {
   message: string;
   data: {
     packages: TestPackageRow[];
+    pagination?: {
+      pageNumber: number;
+      pageSize: number;
+      totalPages: number;
+      totalRecords: number;
+    };
   };
 };
 
@@ -1194,11 +1205,14 @@ export interface Pagination {
 
 export interface CreatePanelPayload {
   name: string;
-  category_id: string;
   price: number;
-  interpretation: string;
-  hide_individual: Record<string, string>; // dynamic keys
-  tests: PanelTestItem[];
+  bill_only_for_gender: string // adjust if needed
+  tests: {
+    test_id: string;
+  }[];
+  panels: {
+    panel_id: string;
+  }[];
 }
 
 export interface UpdatePanelPayload extends CreatePanelPayload {
@@ -1278,3 +1292,82 @@ export interface LabTest {
 
 
 
+export type TestPackageUpdatePayload = {
+  name: string;
+  price: number;
+  bill_only_for_gender: string
+  included?: string;
+
+  tests: { test_id: string }[];
+  panels: { panel_id: string }[];
+
+  remove_tests?: string[];
+  remove_panels?: string[];
+};
+
+export interface FeeManagementResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: FeeManagementData;
+}
+
+export interface FeeManagementData {
+  tests: FeeTestItem[];
+  pagination: Pagination; // <-- use existing one
+}
+
+export interface FeeTestItem {
+  uid: string;
+  name: string;
+  interpretation: string;
+}
+
+export interface LabInvestigationsResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: LabInvestigationsData;
+}
+
+export interface LabInvestigationsData {
+  lab_investigations: LabInvestigationItem[];
+}
+
+export interface LabInvestigationItem {
+  uid: string;
+  name: string | null;
+  short_name: string | null;
+  amount: number;
+  type: "panel" | "test" | "package"; 
+  investigation: "lab"; 
+}
+
+
+
+export type InvoiceItem = {
+  type: "panel" | "test";
+  sub_type: string;
+  item_id: string;
+  amount: number;
+};
+
+export type InvoicePayload = {
+  patient_id: string;
+  total_amount: number;
+  discount_unit: "percentage" | "flat";
+  discount_value: number;
+  referred_by_doctor_id: string | null;
+  referrer_details: string | null;
+  payable_amount: number;
+  items: InvoiceItem[];
+};
+
+export type BookingResponse = {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    booking_uid: string;
+  };
+};

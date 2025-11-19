@@ -1,5 +1,6 @@
 import React from "react";
-import { TextInput, Select } from "@mantine/core";
+import { TextInput, Select, Button, Group } from "@mantine/core";
+import { IconPercentage, IconCurrencyRupee } from "@tabler/icons-react";
 
 export type PaymentDetails = {
   total: number; // computed
@@ -22,16 +23,33 @@ const PaymentDetailsSection: React.FC<PaymentDetailsProps> = ({
   data,
   onChange,
 }) => {
-  const centerDiscount = data.centerDiscount ?? 0;
-  const referrerDiscount = data.referrerDiscount ?? 0;
-  const totalDiscount =
-    (data.discount ?? 0) + centerDiscount + referrerDiscount;
-
   return (
     <div className="p-4 border rounded-lg bg-white">
       <div className="flex gap-6 items-center justify-between mb-2">
-        <div className="text-sm text-gray-700 font-medium">
-          Payment Details:
+        <div className="flex items-center gap-3">
+          <div className="text-sm text-gray-700 font-medium">
+            Payment Details:
+          </div>
+          <Group gap="xs">
+            <Button
+              size="xs"
+              variant={data.discountType === "rupee" ? "filled" : "light"}
+              color="blue"
+              leftSection={<IconCurrencyRupee size={14} />}
+              onClick={() => onChange({ discountType: "rupee" })}
+            >
+              Flat
+            </Button>
+            <Button
+              size="xs"
+              variant={data.discountType === "percent" ? "filled" : "light"}
+              color="blue"
+              leftSection={<IconPercentage size={14} />}
+              onClick={() => onChange({ discountType: "percent" })}
+            >
+              %
+            </Button>
+          </Group>
         </div>
         <div className="text-sm text-gray-600">Total: Rs. {data.total}</div>
       </div>
@@ -44,7 +62,11 @@ const PaymentDetailsSection: React.FC<PaymentDetailsProps> = ({
             onChange={(e) =>
               onChange({ discount: Number(e.currentTarget.value) || 0 })
             }
-            rightSection={<span className="text-xs">%</span>}
+            rightSection={
+              <span className="text-xs">
+                {data.discountType === "percent" ? "%" : "Rs"}
+              </span>
+            }
           />
         </div>
 
@@ -87,7 +109,6 @@ const PaymentDetailsSection: React.FC<PaymentDetailsProps> = ({
           onChange={(e) => onChange({ remarks: e.currentTarget.value })}
         />
       </div>
-      
     </div>
   );
 };
