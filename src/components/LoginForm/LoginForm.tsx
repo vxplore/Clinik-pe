@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Paper, TextInput, Button, Text } from "@mantine/core";
+import { Paper, TextInput, Text, Anchor } from "@mantine/core";
+import { Link } from "react-router-dom";
 import { useDeviceId } from "../../Customhooks/useDeviceId";
 import { useDeviceType } from "../../Customhooks/useDeviceType";
 import apis from "../../APis/Api";
@@ -131,10 +132,16 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
     if (onLogin) onLogin(trimmed);
 
     // extract otp details and navigate to the OTP page with required state
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const data: any = response?.data;
-    const otp_id = data?.otpDetails?.otp_id ?? data?.otp_id;
-    const request_id = data?.otpDetails?.request_id ?? data?.request_id;
+    const dataAny = response?.data as any;
+    let otp_id: string | undefined;
+    let request_id: string | undefined;
+    if (dataAny?.otpDetails) {
+      otp_id = dataAny.otpDetails?.otp_id;
+      request_id = dataAny.otpDetails?.request_id;
+    } else {
+      otp_id = dataAny?.otp_id;
+      request_id = dataAny?.request_id;
+    }
 
     // Navigate to login-otp so the OTP form has identifier + otp/request ids
     if (response?.success) {
@@ -256,6 +263,14 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
             Login Now
           </LoadingButton>
         </form>
+        <div className="text-center mt-3">
+          <Text size="sm" color="dimmed">
+            Don't have an account?
+            <Anchor component={Link} to="/" className="ml-2">
+              Create Organization
+            </Anchor>
+          </Text>
+        </div>
       </Paper>
     </div>
   );

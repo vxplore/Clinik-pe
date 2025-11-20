@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import { useDeviceId } from "../../Customhooks/useDeviceId";
-import { TextInput, Select, Button } from "@mantine/core";
+import { TextInput, Select, Button, Anchor, Text } from "@mantine/core";
 import Notification from "../Global/Notification";
 import apis from "../../APis/Api";
 import { useNavigate } from "react-router-dom";
@@ -129,6 +129,7 @@ const OnboardingForm: React.FC<OnboardingFormProps> = ({ onSubmit }) => {
         <h2 className="text-xl font-semibold text-gray-900 mb-2">
           Let's Get Your Clinic or Lab Online
         </h2>
+
         <p className="text-sm text-gray-600">
           Create your profile, reach more patients, and manage bookings in
           minutes
@@ -254,6 +255,14 @@ const OnboardingForm: React.FC<OnboardingFormProps> = ({ onSubmit }) => {
               },
             }}
           />
+        </div>
+        <div className="text-center mt-2">
+          <Text size="sm" color="dimmed">
+            Already have an account?
+            <Anchor component={Link} to="/login" className="ml-2">
+              Login
+            </Anchor>
+          </Text>
         </div>
 
         {/* Submit Button */}
