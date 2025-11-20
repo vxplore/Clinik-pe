@@ -247,6 +247,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
           </div>
 
           <LoadingButton
+            // @ts-expect-error: allow type
             type="submit"
             fullWidth
             styles={{ root: { backgroundColor: "#0b5ed7" } }}

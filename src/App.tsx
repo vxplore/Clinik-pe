@@ -8,12 +8,15 @@ import "@mantine/dates/styles.css";
 import AppContents from "./AppContents";
 import { Notifications } from "@mantine/notifications";
 import theme from "./Theme/Theme";
+export const isProduction = import.meta.env.MODE !== "development";
+
+const basename = isProduction ? "/clinicpe/management" : "/";
 
 function App() {
   return (
     <>
       <MantineProvider theme={theme}>
-        <BrowserRouter>
+        <BrowserRouter basename={basename}>
           <Notifications position="top-right" />
           <AppContents />
         </BrowserRouter>

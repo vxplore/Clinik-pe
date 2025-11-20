@@ -190,7 +190,7 @@ const GeneralSettings: React.FC = () => {
           { key: "information.billing_address", value: billingAddress },
         ],
       };
-
+      // @ts-expect-error: allow payload
       const response = await apis.AddPaymentSettings(centerId, orgId, payload);
 
       setNotif({

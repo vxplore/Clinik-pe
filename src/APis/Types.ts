@@ -26,7 +26,7 @@ export type VerifyOtpPayload = {
   device_type: string;
   device_id: string;
   frontend_type: string;
-}
+};
 
 export type VerifyOtpResponse = {
   success: boolean;
@@ -35,14 +35,14 @@ export type VerifyOtpResponse = {
   data: {
     verified: boolean;
   };
-}
+};
 
 export type ResendOtpPayload = {
   request_id: string;
   device_type: string;
   device_id: string;
   frontend_type: string;
-}
+};
 
 export type ResendOtpResponse = {
   success: boolean;
@@ -51,7 +51,7 @@ export type ResendOtpResponse = {
   data: {
     otp_id: string;
   };
-}
+};
 
 export type OrganizationAddPayloads = {
   organization_name: string;
@@ -79,12 +79,11 @@ export type OrganizationAddPayloads = {
   };
 };
 
-
 export interface OrganizationLoginRequestPayload {
   emailMobile: string | number;
-  device_type: string
+  device_type: string;
   device_id: string;
-  frontend_type: string
+  frontend_type: string;
 }
 
 export type AccessToken = {
@@ -110,7 +109,7 @@ export type AccessToken = {
       image: string | null;
     };
   };
-}
+};
 
 export type OrganizationAddInside = {
   organization_name: string;
@@ -124,9 +123,7 @@ export type OrganizationAddInsideResponse = {
   success: boolean;
   httpStatus: number;
   message: string;
-
 };
-
 
 //twin
 export interface Organization {
@@ -163,7 +160,6 @@ export interface OrganizationListResponse {
     pagination: Pagination;
   };
 }
-
 
 export type WorkingHour = {
   week_day: string;
@@ -257,7 +253,6 @@ export interface ExperienceItem {
   name: string;
 }
 
-
 export interface ExperienceResponse {
   success: boolean;
   httpStatus: number;
@@ -277,7 +272,6 @@ export interface QualificationResponse {
   data: QualificationItem[];
 }
 
-
 export interface SpecialityItem {
   uid: string;
   name: string;
@@ -290,7 +284,6 @@ export interface SpecialityResponse {
   data: SpecialityItem[];
 }
 
-
 export interface UploadData {
   uploadPath: string;
 }
@@ -301,7 +294,6 @@ export interface FileUploadResponse {
   message: string;
   data: UploadData;
 }
-
 
 export type DoctorExperience = {
   speciality_id: string;
@@ -320,8 +312,6 @@ export type DoctorQualification = {
   institute_name: string;
 };
 
-
-
 export type ProviderDetails = {
   contact_email: string;
   contact_mobile: string;
@@ -333,7 +323,6 @@ export type ProviderDetails = {
   name: string;
   time_zone: string;
 };
-
 
 export interface ProviderListResponse {
   success: boolean;
@@ -379,7 +368,6 @@ export interface Pagination {
   pageCount: number;
 }
 
-
 export interface SwitchOrganizationResponse {
   success: boolean;
   httpStatus: number;
@@ -424,7 +412,7 @@ export interface DoctorAvailabilityResponse {
       summary: string;
       registration: string | null;
       specialities: any[]; // You can replace `any` with a proper type if known
-      experience: any[];   // Same here
+      experience: any[]; // Same here
     };
     availabilities: any[]; // Define structure when known
     pagination: {
@@ -435,7 +423,6 @@ export interface DoctorAvailabilityResponse {
     };
   };
 }
-
 
 export type DoctorAvailability = {
   uid: string;
@@ -480,18 +467,16 @@ export type DoctorAvailabilityCreateResponse = {
   };
 };
 
-
-
 export type PaymentSetting = {
   key:
-  | "payment.cash"
-  | "payment.online"
-  | "payment.bank_account_name"
-  | "payment.bank_account_type"
-  | "payment.bank_account_number"
-  | "payment.ifsc_code"
-  | "payment.bank_name"
-  | "payment.branch_name";
+    | "payment.cash"
+    | "payment.online"
+    | "payment.bank_account_name"
+    | "payment.bank_account_type"
+    | "payment.bank_account_number"
+    | "payment.ifsc_code"
+    | "payment.bank_name"
+    | "payment.branch_name";
   value: string | boolean;
 };
 
@@ -515,7 +500,6 @@ export type CreateDoctorFeeResponse = {
   };
 };
 
-
 export type DoctorCommissionPayload = {
   doctor_id: string;
   appointment_type: string;
@@ -525,7 +509,6 @@ export type DoctorCommissionPayload = {
   speciality_id?: string;
   schedule_id?: string;
 };
-
 
 export interface FeeManagementResponse {
   success: boolean;
@@ -592,10 +575,10 @@ export interface DoctorAvailabilityRES {
 
 // Internal time slots per availability
 export interface AvailabilityTimeRange {
-  startTime: string;      // "10:00 AM"
-  endTime: string;        // "05:00 PM"
-  waitTime: string;       // "0"
-  slotInterval: string;   // "30"
+  startTime: string; // "10:00 AM"
+  endTime: string; // "05:00 PM"
+  waitTime: string; // "0"
+  slotInterval: string; // "30"
 }
 
 // Pagination block
@@ -609,11 +592,11 @@ export interface PaginationInfo {
 export interface CreatePatientPayload {
   name: string;
   last_name: string;
-  dob: string;               // format: YYYY-MM-DD
+  dob: string; // format: YYYY-MM-DD
   email: string;
   mobile: string;
   age: number;
-  age_on_date: string;       // format: YYYY-MM-DD
+  age_on_date: string; // format: YYYY-MM-DD
   address: {
     address: string;
     lat: string;
@@ -630,10 +613,8 @@ export interface CreatePatientPayload {
     land_mark: string;
     instruction: string;
   };
-  gender: string;            // or literal type: "male" | "female" | "other"
+  gender: string; // or literal type: "male" | "female" | "other"
 }
-
-
 
 export interface CreatePatientResponse {
   success: boolean;
@@ -731,7 +712,6 @@ export type Appointment = {
 //   pageCount?: number;
 // };
 
-
 // export type Pagination = {
 //   pageNumber?: number;
 //   pageSize?: number;
@@ -753,7 +733,6 @@ export type Slot = {
   start?: string;
   end?: string;
 };
-
 
 export type AppointmentSymptomsResponse = {
   success?: boolean;
@@ -793,7 +772,6 @@ export type AppointmentPayment = {
   note?: string;
 };
 
-
 export type CreateAppointmentResponse = {
   success: boolean;
   httpStatus: number;
@@ -803,15 +781,15 @@ export type CreateAppointmentResponse = {
     symptoms_added: number;
   };
 };
-//new today 
+//new today
 export interface TestPackageRow {
-  uid?: string;  // API uses uid
-  id?: string;   // keep for backwards compat
+  uid?: string; // API uses uid
+  id?: string; // keep for backwards compat
   name: string;
-  price?: string | number;  // API returns price
-  fee?: string;  // keep for backwards compat
-  bill_only_for_gender?: "male" | "female" | "both";  // API key
-  gender?: "Male" | "Female" | "Both";  // keep for backwards compat
+  price?: string | number; // API returns price
+  fee?: string; // keep for backwards compat
+  bill_only_for_gender?: "male" | "female" | "both"; // API key
+  gender?: "Male" | "Female" | "Both"; // keep for backwards compat
   included?: string;
   status?: string;
   tests?: { test_id: string; test_name?: string }[]; // object array from API
@@ -917,7 +895,6 @@ export interface TestCategoryRow {
 
 export type TestCategoryPayload = {
   name: string;
-
 };
 
 export type TestCategoryResponse = {
@@ -941,7 +918,6 @@ export type TestCategoryResponse = {
 export type ReorderCategoriesPayload = {
   uid: string;
   after_uid: string;
-
 };
 
 export type ReorderCategoriesResponse = {
@@ -949,7 +925,6 @@ export type ReorderCategoriesResponse = {
   httpStatus: number;
   message: string;
 };
-
 
 export interface TestCategory {
   id: string;
@@ -983,11 +958,6 @@ export interface TestCategoryListResponse {
   data: TestCategoryData;
 }
 
-
-
-
-
-
 export type CreateUnitResponse = {
   success: boolean;
   httpStatus: number;
@@ -1010,7 +980,6 @@ export type Unit = {
   updated_at: string | null;
 };
 
-
 export type UnitsListResponse = {
   success: boolean;
   httpStatus: number;
@@ -1020,7 +989,6 @@ export type UnitsListResponse = {
     pagination: Pagination;
   };
 };
-
 
 export type DeleteUnitResponse = {
   success: boolean;
@@ -1035,19 +1003,19 @@ export type TestChild = {
   order: string;
   name: string;
   unit_id: string;
-  input_type: string;        // you can convert to union if needed
+  input_type: string; // you can convert to union if needed
   default_result: string;
   group_by?: string;
   optional: boolean;
 };
 
 export type CreateTestPayload = {
-  type: string;              // e.g. "multiple"
+  type: string; // e.g. "multiple"
   name: string;
   short_name: string;
   category_id: string;
   unit_id?: string;
-  input_type?: string;        // e.g. "numeric" (optional for multiple tests)
+  input_type?: string; // e.g. "numeric" (optional for multiple tests)
   default_result?: string;
   optional?: boolean;
   price: string;
@@ -1063,7 +1031,6 @@ export type CreateTestPayload = {
   children?: TestChild[];
 };
 
-
 export type LabTestParent = {
   uid: string;
   name: string;
@@ -1076,7 +1043,7 @@ export type LabTestParent = {
   notes: string;
   comments: string;
   order: number;
-  type: string;          // e.g. "multiple"
+  type: string; // e.g. "multiple"
   created_by: string;
 };
 
@@ -1084,7 +1051,7 @@ export type LabTestChild = {
   uid: string;
   name: string;
   unit_id: string;
-  input_type: string;    // e.g. "numeric"
+  input_type: string; // e.g. "numeric"
   default_result: string;
   optional: boolean;
   parent_id: string;
@@ -1103,7 +1070,6 @@ export type CreateLabTestResponse = {
     children?: LabTestChild[];
   };
 };
-
 
 export interface DoctorSpeciality {
   speciality_id: string;
@@ -1188,9 +1154,6 @@ export interface Pagination {
   totalRecords: number;
 }
 
-
-
-
 export interface LabTestsListResponse {
   success: boolean;
   httpStatus: number;
@@ -1213,11 +1176,10 @@ export interface Pagination {
   totalRecords: number;
 }
 
-
 export interface CreatePanelPayload {
   name: string;
   price: number;
-  bill_only_for_gender: string // adjust if needed
+  bill_only_for_gender: string; // adjust if needed
   tests: {
     test_id: string;
   }[];
@@ -1233,8 +1195,6 @@ export interface UpdatePanelPayload extends CreatePanelPayload {
 export interface PanelTestItem {
   test_id: string;
 }
-
-
 
 export interface PanelDetailsResponse {
   success: boolean;
@@ -1267,9 +1227,6 @@ export interface PanelTestDetails {
   test_name: string;
 }
 
-
-
-
 export interface LabTest {
   id: string;
   uid: string;
@@ -1301,12 +1258,10 @@ export interface LabTest {
   center_id: string;
 }
 
-
-
 export type TestPackageUpdatePayload = {
   name: string;
   price: number;
-  bill_only_for_gender: string
+  bill_only_for_gender: string;
   included?: string;
 
   tests: { test_id: string }[];
@@ -1354,8 +1309,6 @@ export interface LabInvestigationItem {
   investigation: "lab";
 }
 
-
-
 export type InvoiceItem = {
   type: "panel" | "test";
   sub_type: string;
@@ -1394,11 +1347,11 @@ export type BookingResponse = {
 export interface BookingItem {
   booking_uid: string;
   patient_id: string;
-  total_amount: string;        // "1450.00"
-  discount_unit: string;       // "percentage" | "flat"
-  discount_value: string;      // "10"
-  payable_amount: string;      // "1305.00"
-  created_at: string | null;   // can be null
+  total_amount: string; // "1450.00"
+  discount_unit: string; // "percentage" | "flat"
+  discount_value: string; // "10"
+  payable_amount: string; // "1305.00"
+  created_at: string | null; // can be null
   patient_uid: string;
   patient_name: string;
   patient_mobile: string | null;
@@ -1425,7 +1378,6 @@ export interface BookingsListResponse {
   };
 }
 
-
 export interface Fee {
   id: string;
   uid: string;
@@ -1448,11 +1400,11 @@ export interface Fee {
   details: string;
 }
 
-
 export interface FeeManagementResponse {
   success: boolean;
   httpStatus: number;
   message: string;
+  // @ts-expect-error: allow data
   data: {
     fees: Fee[];
   };

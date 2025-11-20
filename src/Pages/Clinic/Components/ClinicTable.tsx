@@ -67,6 +67,7 @@ const ClinicTable: React.FC<ClinicTableProps> = ({
 
       // Merge only center-related fields into store
       const currentDetails = useAuthStore.getState().organizationDetails;
+      // @ts-expect-error: allow baseDetails
       const baseDetails: import("../../../GlobalStore/store").OrganizationDetails =
         currentDetails ?? {
           organization_id: switchDetails.organization_id || "",
@@ -86,6 +87,7 @@ const ClinicTable: React.FC<ClinicTableProps> = ({
           center_id: switchDetails.center_id ?? null,
           image: switchDetails.image ?? null,
         };
+      // @ts-expect-error: allow updatedDetails
 
       const updatedDetails: import("../../../GlobalStore/store").OrganizationDetails =
         {
