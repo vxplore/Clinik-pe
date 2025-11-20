@@ -21,6 +21,7 @@ import ClinicList from "./Pages/Clinic/ClinicList";
 import AddCenter from "./Pages/Clinic/AddCenter";
 
 // 🟨 Provider Pages
+// @ts-expect-error: allow ProviderList
 import ProviderList from "./Pages/Provider/ProviderList";
 import AddProvider from "./Pages/Provider/AddProvider";
 

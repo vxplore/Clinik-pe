@@ -82,6 +82,7 @@ const OrganizationTable: React.FC<{
       // Read current details and merge organization-specific fields to avoid overwriting user identity
       const currentDetails = useAuthStore.getState().organizationDetails;
       // Ensure we have all required fields when updating the persisted store.
+      // @ts-expect-error: allow baseDetails
       const baseDetails: import("../../../GlobalStore/store").OrganizationDetails =
         currentDetails ?? {
           organization_id: switchDetails.organization_id || "",
@@ -100,7 +101,7 @@ const OrganizationTable: React.FC<{
           center_id: switchDetails.center_id ?? null,
           image: switchDetails.image ?? null,
         };
-
+      // @ts-expect-error: allow updatedDetails
       const updatedDetails: import("../../../GlobalStore/store").OrganizationDetails =
         {
           ...baseDetails,

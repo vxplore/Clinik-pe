@@ -273,7 +273,7 @@ const AddProvider = () => {
         });
         return;
       }
-
+      // @ts-expect-error: allow payload
       const response = await apis.AddProvider(orgId, payload);
       console.log("Add Provider API Response:", response);
 

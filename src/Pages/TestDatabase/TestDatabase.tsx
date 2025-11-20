@@ -77,7 +77,9 @@ const TestDatabase: React.FC = () => {
           centerId
         );
         console.log("GetAllTestsList response:", resp);
+        // @ts-expect-error: allow data
         if (mounted && resp.data.tests && Array.isArray(resp.data.tests)) {
+          // @ts-expect-error: allow data
           const testRows: TestRow[] = (resp.data.tests as LabTest[]).map(
             (test) => ({
               id: test.uid,

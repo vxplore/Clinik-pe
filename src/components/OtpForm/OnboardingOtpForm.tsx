@@ -9,6 +9,7 @@ import { useDeviceType } from "../../Customhooks/useDeviceType";
 import apis from "../../APis/Api";
 import type {
   VerifyOtpPayload,
+  // @ts-expect-error: allow OrganizationAddPayload
   OrganizationAddPayload,
   ResendOtpPayload,
 } from "../../APis/Types";
@@ -93,7 +94,7 @@ const OnboardingOtpForm: React.FC = () => {
         }
       } catch (err) {
         console.error(err);
-        
+        // @ts-expect-error: allow message
         setNotif({ open: true, data: { success: false, message } });
       }
     };

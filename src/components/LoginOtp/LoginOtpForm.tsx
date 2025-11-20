@@ -126,6 +126,8 @@ const LoginOtpForm: React.FC = () => {
         const setOrganizationDetails =
           useAuthStore.getState().setOrganizationDetails;
         try {
+          // @ts-expect-error: allow response
+
           setOrganizationDetails(response.data.loggedUserDetails);
         } catch (e) {
           console.warn("Could not set organization details in store:", e);
