@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Button, TextInput, Select, Checkbox } from "@mantine/core";
 import { DatePickerInput } from "@mantine/dates";
-import { IconSearch, IconX } from "@tabler/icons-react";
+import { IconPlus, IconSearch, IconX } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 import BillsTable from "./Components/BillsTable";
 
@@ -33,7 +33,7 @@ const DiagnosticBillsPage: React.FC = () => {
   });
 
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const pageSize = 5;
 
   const durationOptions = [
     { value: "past-7-days", label: "Past 7 days" },
@@ -92,6 +92,14 @@ const DiagnosticBillsPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-gray-800">All bills</h1>
+        <Button
+          leftSection={<IconPlus size={16} />}
+          onClick={handleAddNewCase}
+          variant="filled"
+          color="blue"
+        >
+          Add new case
+        </Button>
       </div>
       {/* Filters Section */}
       <div className="bg-white rounded-lg shadow-sm p-6 ring-1 ring-gray-100">
@@ -100,9 +108,9 @@ const DiagnosticBillsPage: React.FC = () => {
           On small/medium screens: 2 columns
           On large screens: 4 columns (max two rows with up to 4 items per row)
         */}
-        <div className="grid grid-cols-6 gap-2 mb-2 items-center">
+        <div className="flex items-center gap-2 mb-2 overflow-x-auto">
           {/* Duration */}
-          <div>
+          <div className="flex-shrink-0 w-48">
             <label className="text-xs font-medium text-gray-600 mb-2 flex items-center gap-1">
               Duration
               <span
@@ -122,39 +130,30 @@ const DiagnosticBillsPage: React.FC = () => {
             />
           </div>
 
-          {/* Date Range */}
-          <div className="col-span-2">
-            <label className="text-xs font-medium text-gray-600 mb-2 block">
-              Date Range
-            </label>
-            <DatePickerInput
-              type="range"
-              value={filters.dateRange}
-              onChange={(value) =>
-                handleFilterChange(
-                  "dateRange",
-                  value as [Date | null, Date | null]
-                )
-              }
-              placeholder="Select date range"
-              disabled={filters.duration !== "custom"}
-            />
-          </div>
+          {/* Date Range (visible only when 'custom' duration selected) */}
+          {filters.duration === "custom" && (
+            <div className="flex-shrink-0 w-96">
+              <label className="text-xs font-medium text-gray-600 mb-2 block">
+                Date Range
+              </label>
+              <DatePickerInput
+                type="range"
+                value={filters.dateRange}
+                onChange={(value) =>
+                  handleFilterChange(
+                    "dateRange",
+                    value as [Date | null, Date | null]
+                  )
+                }
+                placeholder="Select date range"
+              />
+            </div>
+          )}
 
           {/* Reg. no. */}
-          <div>
-            <label className="text-xs font-medium text-gray-600 mb-2 block">
-              Reg. no.
-            </label>
-            <TextInput
-              value={filters.regNo}
-              onChange={(e) => handleFilterChange("regNo", e.target.value)}
-              placeholder="Enter registration number"
-            />
-          </div>
 
           {/* Patient first name */}
-          <div>
+          <div className="flex-shrink-0 w-56">
             <label className="text-xs font-medium text-gray-600 mb-2 block">
               Patient first name
             </label>
@@ -168,7 +167,7 @@ const DiagnosticBillsPage: React.FC = () => {
           </div>
 
           {/* Referred by */}
-          <div>
+          <div className="flex-shrink-0 w-56">
             <label className="text-xs font-medium text-gray-600 mb-2 block">
               Referred by
             </label>
@@ -183,49 +182,24 @@ const DiagnosticBillsPage: React.FC = () => {
             />
           </div>
 
-          {/* Collection centre: moved to second row */}
-        </div>
-
-        {/* Second row: compact checkboxes + action buttons */}
-        <div className="grid grid-cols-4 gap-2 mb-2 items-center">
-          {/* Collection centre */}
-          <div className="col-span-1">
-            <Select
-              data={collectionCentreOptions}
-              value={filters.collectionCentre}
-              onChange={(value) =>
-                handleFilterChange("collectionCentre", value || "")
-              }
-              placeholder="Collection centre"
-              searchable
+          {/* <div className="col-span-1">
+            <Checkbox
+              label="Has due"
+              checked={filters.hasDue}
+              onChange={(e) => handleFilterChange("hasDue", e.target.checked)}
             />
           </div>
-          {/* Sample collection agent */}
-          <div className="col-span-1">
-            <Select
-              data={sampleAgentOptions}
-              value={filters.sampleCollectionAgent}
-              onChange={(value) =>
-                handleFilterChange("sampleCollectionAgent", value || "")
+          <div className="flex-shrink-0 w-28">
+            <Checkbox
+              label="Cancelled"
+              checked={filters.cancelled}
+              onChange={(e) =>
+                handleFilterChange("cancelled", e.target.checked)
               }
-              placeholder="Sample agent"
-              searchable
             />
-          </div>
-          <div className="col-span-2">
-            <div className="flex items-center gap-4">
-              <Checkbox
-                label="Has due"
-                checked={filters.hasDue}
-                onChange={(e) => handleFilterChange("hasDue", e.target.checked)}
-              />
-              <Checkbox
-                label="Cancelled"
-                checked={filters.cancelled}
-                onChange={(e) =>
-                  handleFilterChange("cancelled", e.target.checked)
-                }
-              />
+          </div> */}
+          <div className="flex items-center mt-6 gap-2">
+            <div className="flex-shrink-0 mt- w-28">
               <Button
                 leftSection={<IconSearch size={16} />}
                 onClick={handleSearch}
@@ -234,6 +208,8 @@ const DiagnosticBillsPage: React.FC = () => {
               >
                 Search
               </Button>
+            </div>
+            <div className="col-span-1">
               <Button
                 leftSection={<IconX size={16} />}
                 onClick={handleClear}
@@ -243,7 +219,11 @@ const DiagnosticBillsPage: React.FC = () => {
               </Button>
             </div>
           </div>
+
+          {/* All filters are inline */}
         </div>
+
+        {/* Second row: compact checkboxes + action buttons */}
       </div>
       {/* Bills Table */}
       <BillsTable

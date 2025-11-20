@@ -5,7 +5,11 @@ import { notifications } from "@mantine/notifications";
 import apis from "../../../APis/Api";
 import useDropdownStore from "../../../GlobalStore/useDropdownStore";
 import useAuthStore from "../../../GlobalStore/store";
-import type { Provider, DoctorAvailabilityInput } from "../../../APis/Types";
+import type {
+  Provider,
+  DoctorAvailabilityInput,
+  DoctorSpeciality,
+} from "../../../APis/Types";
 
 type Props = {
   opened: boolean;
@@ -39,6 +43,11 @@ const AddAvailabilityModal: React.FC<Props> = ({
   const [selectedProvider, setSelectedProvider] = useState<string | null>(
     defaultProvider ?? null
   );
+  const [specialities, setSpecialities] = useState<DoctorSpeciality[]>([]);
+  const [isLoadingSpecialities, setIsLoadingSpecialities] = useState(false);
+  const [selectedSpeciality, setSelectedSpeciality] = useState<string | null>(
+    null
+  );
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("17:00");
@@ -55,6 +64,8 @@ const AddAvailabilityModal: React.FC<Props> = ({
       setInterval("15");
       setType("in-clinic");
       setSelectedProvider(defaultProvider ?? null);
+      setSelectedSpeciality(null);
+      setSpecialities([]);
     }
   }, [opened, defaultProvider]);
 
@@ -135,7 +146,7 @@ const AddAvailabilityModal: React.FC<Props> = ({
         },
       ],
       appointment_type: type.toLowerCase().replace(/\s+/g, "-"),
-      speciality_id: "",
+      speciality_id: selectedSpeciality ?? undefined,
     };
 
     return {
@@ -183,6 +194,62 @@ const AddAvailabilityModal: React.FC<Props> = ({
     ...providers.map((p) => ({ label: p.name, value: p.uid })),
   ];
 
+  // Fetch specialities for a selected provider
+  useEffect(() => {
+    let isMounted = true;
+    const fetchSpecialities = async (providerUid: string | null) => {
+      if (!providerUid || providerUid === "all") {
+        setSpecialities([]);
+        setSelectedSpeciality(null);
+        return;
+      }
+
+      const { organizationDetails } = useAuthStore.getState();
+      const { selectedCenter } = useDropdownStore.getState();
+      const orgId = organizationDetails?.organization_id;
+      const centerId = selectedCenter?.center_id;
+
+      if (!orgId || !centerId) {
+        return;
+      }
+
+      setIsLoadingSpecialities(true);
+      try {
+        const resp = await apis.GetDoctorSpecalities(
+          orgId,
+          centerId,
+          providerUid
+        );
+        if (isMounted && resp?.success && resp?.data?.doctor_specialities) {
+          setSpecialities(resp.data.doctor_specialities);
+          // keep speciality unset by default (optional) so users can explicitly pick one
+          setSelectedSpeciality(null);
+        } else if (isMounted) {
+          setSpecialities([]);
+          setSelectedSpeciality(null);
+        }
+      } catch (err) {
+        console.error("Failed to fetch specialities for provider:", err);
+        if (isMounted) {
+          setSpecialities([]);
+          setSelectedSpeciality(null);
+          notifications.show({
+            title: "Error",
+            message: "Failed to load specialities",
+            color: "red",
+          });
+        }
+      } finally {
+        if (isMounted) setIsLoadingSpecialities(false);
+      }
+    };
+
+    fetchSpecialities(selectedProvider);
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedProvider]);
+
   return (
     <Modal
       opened={opened}
@@ -207,6 +274,25 @@ const AddAvailabilityModal: React.FC<Props> = ({
               searchable
               clearable
             />
+            <div className="mt-3">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select Speciality
+              </label>
+              <Select
+                placeholder={
+                  isLoadingSpecialities ? "Loading..." : "Select Speciality"
+                }
+                data={specialities.map((s) => ({
+                  value: s.speciality_id,
+                  label: s.speciality_name,
+                }))}
+                value={selectedSpeciality ?? undefined}
+                onChange={(v) => setSelectedSpeciality(v ?? null)}
+                searchable
+                clearable
+                disabled={isLoadingSpecialities || specialities.length === 0}
+              />
+            </div>
           </div>
 
           <div className="mb-4">

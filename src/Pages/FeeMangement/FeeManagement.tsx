@@ -13,7 +13,7 @@ import useAuthStore from "../../GlobalStore/store";
 const APPOINTMENT_TYPES = [
   { label: "Video Call", value: "Video Call" },
   { label: "Chat", value: "Chat" },
-  { label: "Offline", value: "Offline" },
+  { label: "Inclinic", value: "Inclinic" },
 ] as const;
 
 const COMMISSION_TYPES = ["Flat", "%"] as const;
@@ -164,13 +164,14 @@ const FeeManagement: React.FC = () => {
 
   //will conncet later
   const fetchDoctorAvailabilities = useCallback(
-    async (providerUid: string) => {
+    async (providerUid: string, specialityUid?: string) => {
       if (!hasRequiredOrgDetails || !providerUid) return;
       try {
         const resp = await apis.GetDoctorAvailabilities(
           orgId,
           centerId,
-          providerUid
+          providerUid,
+          specialityUid
         );
         console.log(
           "Doctor availabilities for provider",
@@ -194,7 +195,10 @@ const FeeManagement: React.FC = () => {
       // If a provider was already selected, ensure we load the specialities
       if (formState.providerUid) {
         fetchSpecialities(formState.providerUid);
-        fetchDoctorAvailabilities(formState.providerUid);
+        fetchDoctorAvailabilities(
+          formState.providerUid,
+          formState.specialityUid || undefined
+        );
       }
     }
   }, [
@@ -203,6 +207,7 @@ const FeeManagement: React.FC = () => {
     fetchSpecialities,
     fetchDoctorAvailabilities,
     formState.providerUid,
+    formState.specialityUid,
   ]);
 
   const handlePageChange = (page: number) => {
@@ -222,6 +227,7 @@ const FeeManagement: React.FC = () => {
     field: K,
     value: FormState[K]
   ) => {
+    const currentProvider = formState.providerUid;
     setFormState((prev) => ({ ...prev, [field]: value }));
     // if provider changed, fetch specialities and reset selected speciality
     if (field === "providerUid") {
@@ -231,6 +237,13 @@ const FeeManagement: React.FC = () => {
       if (uid) {
         fetchSpecialities(uid);
         fetchDoctorAvailabilities(uid);
+      }
+    }
+    // if speciality changed, fetch availabilities for current provider + speciality
+    if (field === "specialityUid") {
+      const specialityUid = value as string;
+      if (currentProvider) {
+        fetchDoctorAvailabilities(currentProvider, specialityUid || undefined);
       }
     }
   };

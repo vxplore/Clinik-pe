@@ -775,11 +775,21 @@ export type CreateAppointmentRequest = {
   appointment_time: string;
   duration: string;
   appointmentSymptoms: AppointmentSymptom[];
+  payment?: AppointmentPayment;
 };
 
 export type AppointmentSymptom = {
   symptom_id?: string;
   symptom_name?: string;
+};
+
+export type AppointmentPayment = {
+  amount: number;
+  as: "advance" | "paid";
+  purpose: "appointment";
+  source: "manual";
+  mode: "cash" | "upi";
+  note?: string;
 };
 
 
@@ -1339,8 +1349,8 @@ export interface LabInvestigationItem {
   name: string | null;
   short_name: string | null;
   amount: number;
-  type: "panel" | "test" | "package"; 
-  investigation: "lab"; 
+  type: "panel" | "test" | "package";
+  investigation: "lab";
 }
 
 
@@ -1371,3 +1381,71 @@ export type BookingResponse = {
     booking_uid: string;
   };
 };
+
+export interface BookingItem {
+  booking_uid: string;
+  patient_id: string;
+  total_amount: string;        // "1450.00"
+  discount_unit: string;       // "percentage" | "flat"
+  discount_value: string;      // "10"
+  payable_amount: string;      // "1305.00"
+  created_at: string | null;   // can be null
+  patient_uid: string;
+  patient_name: string;
+  patient_mobile: string | null;
+  patient_age: string;
+  patient_gender: string;
+  doctor_uid: string;
+  doctor_name: string;
+}
+
+export interface Pagination {
+  pageNumber: number;
+  pageSize: number;
+  totalRecords: number;
+  totalPages: number;
+}
+
+export interface BookingsListResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    bookings: BookingItem[];
+    pagination: Pagination;
+  };
+}
+
+
+export interface Fee {
+  id: string;
+  uid: string;
+  central_account_id: string;
+  organization_id: string;
+  center_id: string;
+  doctor_id: string;
+  speciality_id: string;
+  schedule_id: string;
+  appointment_type: "in_clinic" | "video" | string; // adjust if needed
+  fee: string; // or number if your API returns number
+  commission_type: "%" | "flat" | string;
+  commission: string; // or number
+  created_at: string; // ISO datetime string
+  created_by: string;
+  updated_at: string | null;
+  updated_by: string | null;
+  cron_expression: string;
+  time_range: string; // raw string from API
+  details: string;
+}
+
+
+export interface FeeManagementResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    fees: Fee[];
+  };
+}
+

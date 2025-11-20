@@ -67,6 +67,7 @@ import type {
   LabInvestigationsResponse,
   InvoicePayload,
   BookingResponse,
+  BookingsListResponse,
 } from "./Types";
 import apiAgent from "./apiAgents";
 
@@ -454,6 +455,7 @@ class Apis {
     organization_id: string,
     center_id: string,
     provider_id: string
+
   ): Promise<DoctorSpecialitiesResponse> {
     const response = await apiAgent
       .path(`/organizations/${organization_id}/centers/${center_id}/doctors/${provider_id}/specialities`)
@@ -466,11 +468,13 @@ class Apis {
   async GetDoctorAvailabilities(
     organization_id: string,
     center_id: string,
-    provider_id: string
+    provider_id: string,
+    speciality_id?: string
   ): Promise<DoctorSlotsResponse> {
     const response = await apiAgent
       .path(`/organizations/${organization_id}/centers/${center_id}/doctors/${provider_id}/slots-list`)
       .method("GET")
+      .query({ speciality_id })
       .execute();
 
     return response.data as DoctorSlotsResponse;
@@ -1019,6 +1023,39 @@ class Apis {
       .json(payload)
       .execute();
     return response.data as BookingResponse;
+  }
+
+
+
+  async GetBillingList(
+    organization_id: string,
+    center_id: string,
+    pageNumber: number = 1,
+    pageSize: number = 10
+  ): Promise<BookingsListResponse> {
+    const response = await apiAgent
+      .path(`/organizations/${organization_id}/centers/${center_id}/diagnostics/bookings`)
+      .method("GET")
+      .query({ pageNumber, pageSize })
+      .execute();
+    return response.data as BookingsListResponse;
+  }
+
+
+  //https://devs.v-xplore.com/clinicpe/doctor/fee?center_id=g7jN3S41&doctor_id=XvQ7ufZV&speciality_id=E5F6G7H8&appointment_type=in_clinic
+
+  async GetProviderFees(
+    speciality_id: string,
+    appointment_type: string,
+    center_id: string,
+    provider_id: string
+  ): Promise<FeeManagementResponse> {
+    const response = await apiAgent
+      .path(`doctor/fee`)
+      .method("GET")
+      .query({ center_id, doctor_id: provider_id, speciality_id, appointment_type })
+      .execute();
+    return response.data as FeeManagementResponse;
   }
 
 

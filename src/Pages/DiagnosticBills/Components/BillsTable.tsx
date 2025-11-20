@@ -1,18 +1,14 @@
-import React, { useState } from "react";
-import { Button, Badge } from "@mantine/core";
-import { IconPlus, IconChevronRight } from "@tabler/icons-react";
+import React, { useState, useEffect } from "react";
+import { Button } from "@mantine/core";
+import { IconPlus } from "@tabler/icons-react";
+import apis from "../../../APis/Api";
+import useAuthStore from "../../../GlobalStore/store";
+import {
+  type BookingItem,
+  type BookingsListResponse,
+} from "../../../APis/Types";
 
-interface Bill {
-  id: string;
-  regNo: string;
-  date: string;
-  patient: string;
-  referredBy: string;
-  total: string;
-  paid: string;
-  discount: string;
-  status: "paid" | "pending" | "cancelled";
-}
+// We'll display transformed booking rows based on API response
 
 interface BillsTableProps {
   page: number;
@@ -27,33 +23,90 @@ const BillsTable: React.FC<BillsTableProps> = ({
   onPageChange,
   onAddNew,
 }) => {
-  // Mock data - replace with actual API call
-  const [bills] = useState<Bill[]>([]);
-  const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const [bills, setBills] = useState<BookingItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const organizationDetails = useAuthStore((s) => s.organizationDetails);
+  // No expand/arrow functionality for rows; show details inline
 
-  const total = bills.length;
+  const total = totalRecords || bills.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
-  const getStatusBadge = (status: Bill["status"]) => {
-    const statusConfig = {
-      paid: { color: "green", label: "Paid" },
-      pending: { color: "yellow", label: "Pending" },
-      cancelled: { color: "red", label: "Cancelled" },
+  // Status badge helper removed; status column is not shown in table
+
+  // handleRowClick intentionally removed
+
+  const getGenderInitial = (gender?: string | null) => {
+    if (!gender) return "";
+    const g = gender.toLowerCase();
+    // Show 'M' for male, otherwise omit. If needed, we can include 'F' or others later.
+    if (g === "male") return "M";
+    return "";
+  };
+
+  // Use organizationDetails.currency (likely 'INR' or '₹') if provided, else default to rupee sign
+  const orgCurrency = organizationDetails?.currency ?? "₹";
+
+  const formatPatient = (
+    name?: string | null,
+    age?: string | null,
+    gender?: string | null
+  ) => {
+    const displayName = name ?? "—";
+    const ageStr = age ? `(${age})` : "";
+    const genderInitial = getGenderInitial(gender);
+    return `${displayName}${ageStr}${
+      genderInitial ? ` • ${genderInitial}` : ""
+    }`;
+  };
+
+  const formatDiscount = (unit?: string | null, value?: string | null) => {
+    if (!value) return "0";
+    if (unit === "percentage") return `${value}%`;
+    if (unit === "flat") {
+      // if flat and zero, display just 0; otherwise show value with currency if available
+      if (Number(value) === 0) return "0";
+      return `${value}${orgCurrency ? ` ${orgCurrency}` : ""}`;
+    }
+    // fallback: show plain value with currency if available
+    return `${value}${orgCurrency ? ` ${orgCurrency}` : ""}`;
+  };
+
+  useEffect(() => {
+    const fetchBills = async () => {
+      setLoading(true);
+      try {
+        const orgId = organizationDetails?.organization_id;
+        const centerId = organizationDetails?.center_id;
+        if (!orgId || !centerId) {
+          setBills([]);
+          setTotalRecords(0);
+          return;
+        }
+
+        const resp = await apis.GetBillingList(orgId, centerId, page, pageSize);
+        const data = resp as BookingsListResponse;
+        if (data?.data?.bookings) {
+          setBills(data.data.bookings);
+          setTotalRecords(
+            data.data.pagination?.totalRecords ?? data.data.bookings.length
+          );
+        } else {
+          setBills([]);
+          setTotalRecords(0);
+        }
+      } catch (err) {
+        console.warn("GetBillingList failed:", err);
+        setBills([]);
+        setTotalRecords(0);
+      } finally {
+        setLoading(false);
+      }
     };
+    fetchBills();
+  }, [organizationDetails, page, pageSize]);
 
-    const config = statusConfig[status];
-    return (
-      <Badge color={config.color} variant="light" size="sm">
-        {config.label}
-      </Badge>
-    );
-  };
-
-  const handleRowClick = (billId: string) => {
-    setExpandedRow(expandedRow === billId ? null : billId);
-  };
-
-  if (bills.length === 0) {
+  if (!loading && bills.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow-sm ring-1 ring-gray-100">
         {/* Table Header */}
@@ -62,35 +115,27 @@ const BillsTable: React.FC<BillsTableProps> = ({
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  <IconChevronRight size={16} className="opacity-0" />
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Reg. No.
+                  Patient
                 </th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   Date
                 </th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Patient
+                  Doctor
                 </th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Referred by
+                  Phone
                 </th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   Total
                 </th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Paid
+                  Payable
                 </th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   Discount
                 </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Actions
-                </th>
+                {/* Status and Actions not shown in empty state */}
               </tr>
             </thead>
           </table>
@@ -139,81 +184,72 @@ const BillsTable: React.FC<BillsTableProps> = ({
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200">
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider w-10">
-                <IconChevronRight size={16} className="opacity-0" />
-              </th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Reg. No.
+                Patient
               </th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Date
               </th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Patient
+                Doctor
               </th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Referred by
+                Phone
               </th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Total
               </th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Paid
+                Payable
               </th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Discount
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              {/* <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Status
               </th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Actions
-              </th>
+              </th> */}
             </tr>
           </thead>
           <tbody>
+            {loading && (
+              <tr>
+                <td colSpan={7} className="py-8 text-center text-gray-500">
+                  Loading bills...
+                </td>
+              </tr>
+            )}
             {bills.map((bill) => (
-              <React.Fragment key={bill.id}>
-                <tr
-                  className="border-b border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors"
-                  onClick={() => handleRowClick(bill.id)}
-                >
-                  <td className="px-4 py-3">
-                    <IconChevronRight
-                      size={16}
-                      className={`transition-transform ${
-                        expandedRow === bill.id ? "rotate-90" : ""
-                      }`}
-                    />
-                  </td>
+              <React.Fragment key={bill.booking_uid}>
+                <tr className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3 font-medium text-gray-900">
-                    {bill.regNo}
+                    {formatPatient(
+                      bill.patient_name,
+                      bill.patient_age,
+                      bill.patient_gender
+                    )}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{bill.date}</td>
-                  <td className="px-4 py-3 text-gray-900">{bill.patient}</td>
                   <td className="px-4 py-3 text-gray-600">
-                    {bill.referredBy || "—"}
+                    {bill.created_at ?? "—"}
                   </td>
-                  <td className="px-4 py-3 text-gray-900">{bill.total}</td>
-                  <td className="px-4 py-3 text-gray-900">{bill.paid}</td>
-                  <td className="px-4 py-3 text-gray-900">{bill.discount}</td>
-                  <td className="px-4 py-3">{getStatusBadge(bill.status)}</td>
-                  <td className="px-4 py-3">
-                    <Button size="xs" variant="subtle">
-                      View
-                    </Button>
+                  <td className="px-4 py-3 text-gray-900">
+                    {bill.doctor_name || "—"}
+                  </td>
+                  <td className="px-4 py-3 text-gray-600">
+                    {bill.patient_mobile ?? "—"}
+                  </td>
+                  <td className="px-4 py-3 text-gray-900">
+                    {bill.total_amount}
+                  </td>
+                  <td className="px-4 py-3 text-gray-900">
+                    {bill.payable_amount}
+                  </td>
+                  <td className="px-4 py-3 text-gray-900">
+                    {formatDiscount(bill.discount_unit, bill.discount_value)}
                   </td>
                 </tr>
-                {expandedRow === bill.id && (
-                  <tr className="bg-gray-50">
-                    <td colSpan={10} className="px-4 py-4">
-                      <div className="text-sm text-gray-600">
-                        {/* Expanded content goes here */}
-                        <p>Additional bill details for {bill.regNo}</p>
-                      </div>
-                    </td>
-                  </tr>
-                )}
               </React.Fragment>
             ))}
           </tbody>

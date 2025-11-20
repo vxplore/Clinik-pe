@@ -53,6 +53,18 @@ const APPOINTMENT_TYPES = [
   { value: "inclinic", label: "Inclinic" },
 ] as const;
 
+// Payment mode options - used in PaymentSection component
+// const PAYMENT_MODES = [
+//   { value: "cash", label: "Cash" },
+//   { value: "upi", label: "UPI" },
+// ] as const;
+
+// Discount type options - used in PaymentSection component
+// const DISCOUNT_TYPES = [
+//   { value: "percentage", label: "%" },
+//   { value: "flat", label: "₹" },
+// ] as const;
+
 const DEFAULT_DURATION = "30";
 const TIME_SLOTS = {
   MORNING: { start: 6, end: 12, label: "Morning", color: "blue" },
@@ -191,6 +203,17 @@ const BookingPage: React.FC = () => {
   const [selectedSymptomIds, setSelectedSymptomIds] = useState<string[]>([]);
   const [others, setOthers] = useState<string>("");
 
+  // Payment-related states
+  const [actualFee, setActualFee] = useState<number>(0);
+  const [discountType, setDiscountType] = useState<"percentage" | "flat">(
+    "percentage"
+  );
+  const [discountValue, setDiscountValue] = useState<string>("");
+  const [payableAmount, setPayableAmount] = useState<number>(0);
+  const [paymentMode, setPaymentMode] = useState<"cash" | "upi">("cash");
+  const [paymentNote, setPaymentNote] = useState<string>("");
+  const [selectedSpeciality, setSelectedSpeciality] = useState<string>("");
+
   // ============================================================================
   // STATE - Data
   // ============================================================================
@@ -209,6 +232,7 @@ const BookingPage: React.FC = () => {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [loadingScheduleSlots, setLoadingScheduleSlots] = useState(false);
   const [loadingSymptoms, setLoadingSymptoms] = useState(false);
+  const [loadingFee, setLoadingFee] = useState(false);
 
   // ============================================================================
   // STATE - UI
@@ -436,6 +460,69 @@ const BookingPage: React.FC = () => {
     fetchScheduleSlots();
   }, [orgId, centerId, canFetchData, scheduleProvider, scheduleSelectedDate]);
 
+  // Fetch provider fee
+  useEffect(() => {
+    const fetchProviderFee = async () => {
+      if (!canFetchData || !provider || !appointmentType || !selectedSpeciality)
+        return;
+
+      setLoadingFee(true);
+      try {
+        const resp = await apis.GetProviderFees(
+          selectedSpeciality,
+          appointmentType,
+          centerId!,
+          provider
+        );
+        const feeData = resp?.data?.provider_fee_list?.[0];
+        if (feeData?.fee) {
+          const fee = parseFloat(feeData.fee);
+          setActualFee(fee);
+          setPayableAmount(fee);
+        } else {
+          setActualFee(0);
+          setPayableAmount(0);
+        }
+      } catch (err) {
+        console.error("Failed to fetch provider fee:", err);
+        setActualFee(0);
+        setPayableAmount(0);
+      } finally {
+        setLoadingFee(false);
+      }
+    };
+
+    fetchProviderFee();
+  }, [
+    orgId,
+    centerId,
+    canFetchData,
+    provider,
+    appointmentType,
+    selectedSpeciality,
+  ]);
+
+  // Calculate payable amount when discount changes
+  useEffect(() => {
+    if (!actualFee) {
+      setPayableAmount(0);
+      return;
+    }
+
+    const discount = parseFloat(discountValue) || 0;
+    let calculatedAmount = actualFee;
+
+    if (discount > 0) {
+      if (discountType === "percentage") {
+        calculatedAmount = actualFee - (actualFee * discount) / 100;
+      } else {
+        calculatedAmount = actualFee - discount;
+      }
+    }
+
+    setPayableAmount(Math.max(0, calculatedAmount));
+  }, [actualFee, discountValue, discountType]);
+
   // ============================================================================
   // HANDLERS
   // ============================================================================
@@ -467,6 +554,10 @@ const BookingPage: React.FC = () => {
     setSelectedTime(null);
     setSelectedSymptomIds([]);
     setOthers("");
+    setDiscountValue("");
+    setPaymentNote("");
+    setActualFee(0);
+    setPayableAmount(0);
   };
 
   // Refetch patients list
@@ -535,7 +626,24 @@ const BookingPage: React.FC = () => {
       ? calculateDuration(selectedSlot.start, selectedSlot.end)
       : DEFAULT_DURATION;
 
-    const payload = {
+    interface AppointmentPayload {
+      doctor_id: string;
+      patient_id: string;
+      appointment_date: string;
+      appointment_time: string;
+      duration: string;
+      appointmentSymptoms: AppointmentSymptom[];
+      payment?: {
+        amount: number;
+        as: "advance" | "paid";
+        purpose: "appointment";
+        source: "manual";
+        mode: "cash" | "upi";
+        note?: string;
+      };
+    }
+
+    const payload: AppointmentPayload = {
       doctor_id: provider,
       patient_id: selectedPatientId,
       appointment_date: formatDate(selectedDate),
@@ -543,6 +651,18 @@ const BookingPage: React.FC = () => {
       duration,
       appointmentSymptoms,
     };
+
+    // Add payment if fee exists
+    if (actualFee > 0) {
+      payload.payment = {
+        amount: payableAmount,
+        as: actualFee === payableAmount ? "paid" : "advance",
+        purpose: "appointment" as const,
+        source: "manual" as const,
+        mode: paymentMode,
+        note: paymentNote || undefined,
+      };
+    }
 
     try {
       const resp = await apis.CreateAppointment(orgId!, centerId!, payload);
@@ -634,6 +754,20 @@ const BookingPage: React.FC = () => {
           onAddAppointment={handleAddAppointment}
           patientName={patientName}
           onShowAddPatient={() => setShowSidebar(true)}
+          actualFee={actualFee}
+          discountType={discountType}
+          onDiscountTypeChange={setDiscountType}
+          discountValue={discountValue}
+          onDiscountValueChange={setDiscountValue}
+          payableAmount={payableAmount}
+          paymentMode={paymentMode}
+          onPaymentModeChange={setPaymentMode}
+          paymentNote={paymentNote}
+          onPaymentNoteChange={setPaymentNote}
+          loadingFee={loadingFee}
+          providers={providers}
+          selectedSpeciality={selectedSpeciality}
+          onSpecialityChange={setSelectedSpeciality}
         />
       </div>
 
@@ -818,6 +952,20 @@ interface AppointmentFormProps {
   onAddAppointment: () => void;
   patientName: string;
   onShowAddPatient: () => void;
+  actualFee: number;
+  discountType: "percentage" | "flat";
+  onDiscountTypeChange: (type: "percentage" | "flat") => void;
+  discountValue: string;
+  onDiscountValueChange: (value: string) => void;
+  payableAmount: number;
+  paymentMode: "cash" | "upi";
+  onPaymentModeChange: (mode: "cash" | "upi") => void;
+  paymentNote: string;
+  onPaymentNoteChange: (note: string) => void;
+  loadingFee: boolean;
+  providers: Provider[];
+  selectedSpeciality: string;
+  onSpecialityChange: (speciality: string) => void;
 }
 
 const AppointmentForm: React.FC<AppointmentFormProps> = ({
@@ -848,7 +996,38 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
   onAddAppointment,
   patientName,
   onShowAddPatient,
+  actualFee,
+  discountType,
+  onDiscountTypeChange,
+  discountValue,
+  onDiscountValueChange,
+  payableAmount,
+  paymentMode,
+  onPaymentModeChange,
+  paymentNote,
+  onPaymentNoteChange,
+  loadingFee,
+  providers,
+  selectedSpeciality,
+  onSpecialityChange,
 }) => {
+  const [specialityOptions, setSpecialityOptions] = useState<
+    { value: string; label: string }[]
+  >([]);
+
+  useEffect(() => {
+    const selectedProvider = providers.find((p) => p.uid === provider);
+    if (selectedProvider?.specialities) {
+      const options = selectedProvider.specialities.map((s) => ({
+        value: s.uid,
+        label: s.name,
+      }));
+      setSpecialityOptions(options);
+      if (options.length > 0 && !selectedSpeciality) {
+        onSpecialityChange(options[0].value);
+      }
+    }
+  }, [provider, providers, selectedSpeciality, onSpecialityChange]);
   return (
     <div className="md:w-3/7 w-full p-4 bg-white overflow-auto h-full border-l border-gray-200">
       <div className="flex items-center justify-between mb-4">
@@ -902,6 +1081,24 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
         </div>
 
         <div className="grid md:grid-cols-2 grid-cols-1 gap-4">
+          <Select
+            searchable
+            label="Speciality"
+            placeholder="Select Speciality"
+            value={selectedSpeciality}
+            data={specialityOptions}
+            onChange={(val) => onSpecialityChange(val || "")}
+            disabled={!provider || specialityOptions.length === 0}
+          />
+          <TextInput
+            label="Others"
+            placeholder="Enter others...."
+            value={others}
+            onChange={(e) => onOthersChange(e.target.value)}
+          />
+        </div>
+
+        <div className="grid md:grid-cols-1 grid-cols-1 gap-4">
           <MultiSelect
             data={symptomOptions}
             searchable
@@ -911,12 +1108,6 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
             onChange={onSymptomsChange}
             clearable
             disabled={loadingSymptoms}
-          />
-          <TextInput
-            label="Others"
-            placeholder="Enter others...."
-            value={others}
-            onChange={(e) => onOthersChange(e.target.value)}
           />
         </div>
 
@@ -935,6 +1126,21 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
             onTimeChange={onTimeChange}
           />
         </div>
+
+        {/* Payment Section */}
+        <PaymentSection
+          actualFee={actualFee}
+          discountType={discountType}
+          onDiscountTypeChange={onDiscountTypeChange}
+          discountValue={discountValue}
+          onDiscountValueChange={onDiscountValueChange}
+          payableAmount={payableAmount}
+          paymentMode={paymentMode}
+          onPaymentModeChange={onPaymentModeChange}
+          paymentNote={paymentNote}
+          onPaymentNoteChange={onPaymentNoteChange}
+          loadingFee={loadingFee}
+        />
 
         <div className="flex justify-end mt-4">
           <Button
@@ -1048,6 +1254,138 @@ const TimeSlotPeriod: React.FC<TimeSlotPeriodProps> = ({
 // ============================================================================
 // UTILITY COMPONENTS
 // ============================================================================
+
+interface PaymentSectionProps {
+  actualFee: number;
+  discountType: "percentage" | "flat";
+  onDiscountTypeChange: (type: "percentage" | "flat") => void;
+  discountValue: string;
+  onDiscountValueChange: (value: string) => void;
+  payableAmount: number;
+  paymentMode: "cash" | "upi";
+  onPaymentModeChange: (mode: "cash" | "upi") => void;
+  paymentNote: string;
+  onPaymentNoteChange: (note: string) => void;
+  loadingFee: boolean;
+}
+
+const PaymentSection: React.FC<PaymentSectionProps> = ({
+  actualFee,
+  discountType,
+  onDiscountTypeChange,
+  discountValue,
+  onDiscountValueChange,
+  payableAmount,
+  paymentMode,
+  onPaymentModeChange,
+  paymentNote,
+  onPaymentNoteChange,
+  loadingFee,
+}) => {
+  if (loadingFee) {
+    return (
+      <div className="border rounded-lg p-4 bg-gray-50">
+        <p className="text-sm text-gray-500">Loading fee...</p>
+      </div>
+    );
+  }
+
+  if (!actualFee || actualFee === 0) {
+    return null;
+  }
+
+  return (
+    <div className="border rounded-lg p-4 bg-gradient-to-br from-blue-50 to-indigo-50">
+      <h3 className="text-base font-semibold mb-3 text-gray-800">
+        Payment Details
+      </h3>
+
+      {/* Fee Display */}
+      <div className="mb-3 p-3 bg-white rounded-lg border border-blue-200">
+        <div className="flex justify-between items-center">
+          <span className="text-sm font-medium text-gray-600">
+            Consultation Fee:
+          </span>
+          <span className="text-lg font-bold text-blue-600">
+            ₹{actualFee.toFixed(2)}
+          </span>
+        </div>
+      </div>
+
+      {/* Discount Section */}
+      <div className="mb-3">
+        <label className="text-sm font-medium text-gray-700 block mb-2">
+          Discount
+        </label>
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <TextInput
+              type="number"
+              placeholder="Enter discount"
+              value={discountValue}
+              onChange={(e) => onDiscountValueChange(e.target.value)}
+              min="0"
+            />
+          </div>
+          <Select
+            data={[
+              { value: "percentage", label: "%" },
+              { value: "flat", label: "₹" },
+            ]}
+            value={discountType}
+            onChange={(val) =>
+              onDiscountTypeChange(
+                (val as "percentage" | "flat") || "percentage"
+              )
+            }
+            className="w-24"
+          />
+        </div>
+      </div>
+
+      {/* Payable Amount */}
+      <div className="mb-3 p-3 bg-white rounded-lg border-2 border-green-300">
+        <div className="flex justify-between items-center">
+          <span className="text-sm font-semibold text-gray-700">
+            Payable Amount:
+          </span>
+          <span className="text-xl font-bold text-green-600">
+            ₹{payableAmount.toFixed(2)}
+          </span>
+        </div>
+      </div>
+
+      {/* Payment Mode */}
+      <div className="mb-3">
+        <label className="text-sm font-medium text-gray-700 block mb-2">
+          Payment Mode
+        </label>
+        <Select
+          data={[
+            { value: "cash", label: "Cash" },
+            { value: "upi", label: "UPI" },
+          ]}
+          value={paymentMode}
+          onChange={(val) =>
+            onPaymentModeChange((val as "cash" | "upi") || "cash")
+          }
+        />
+      </div>
+
+      {/* Payment Note */}
+      <div>
+        <label className="text-sm font-medium text-gray-700 block mb-2">
+          Payment Note (Optional)
+        </label>
+        <TextInput
+          placeholder="Add a note..."
+          value={paymentNote}
+          onChange={(e) => onPaymentNoteChange(e.target.value)}
+        />
+      </div>
+    </div>
+  );
+};
 
 interface LoadingStateProps {
   message: string;
