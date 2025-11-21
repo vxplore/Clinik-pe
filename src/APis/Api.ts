@@ -69,6 +69,8 @@ import type {
   BookingResponse,
   BookingsListResponse,
   SidebarMenuResponse,
+  CreateRolePermissionResponse,
+  QrCodeApiResponse,
 } from "./Types";
 import apiAgent from "./apiAgents";
 
@@ -1077,14 +1079,14 @@ class Apis {
 
 
   async AddRole(
-    payload: { name: string; permissions?: string[]; status?: string }
-  ): Promise<{ success: boolean; message: string } & { httpStatus?: number }> {
+    payload: { name: string; permissions?: string; status?: string }
+  ): Promise<CreateRolePermissionResponse> {
     const response = await apiAgent
       .path(`organizations/users/roles`)
       .method("POST")
       .json(payload)
       .execute();
-    return response.data as any;
+    return response.data as CreateRolePermissionResponse;
   }
   //role based
   async GetRoles(
@@ -1128,6 +1130,84 @@ class Apis {
     return response.data as any;
   }
 
+
+  async GetQRcode(
+    organization_id: string,
+    center_id: string
+  ): Promise<QrCodeApiResponse> {
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/qr-code`)
+      .method("GET")
+      .execute();
+    return response.data as QrCodeApiResponse;
+  }
+
+  // Other Test Panels (Radiology) APIs
+  // async GetOtherTestPanels(pageNumber: number, pageSize: number, organization_id: string, center_id: string, search: string): Promise<any> {
+  //   const response = await apiAgent
+  //     .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/other-panels`)
+  //     .method("GET")
+  //     .query({ search, pageNumber, pageSize })
+  //     .execute();
+  //   return response.data as any;
+  // }
+
+  // async AddOtherTestPanel(
+  //   payload: any,
+  //   organization_id: string, center_id: string): Promise<any> {
+  //   const response = await apiAgent
+  //     .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/other-panels`)
+  //     .method("POST")
+  //     .json(payload)
+  //     .execute();
+  //   return response.data as any;
+  // }
+
+  // async UpdateOtherTestPanel(
+  //   payload: any,
+  //   organization_id: string, center_id: string, panel_id: string): Promise<any> {
+  //   const response = await apiAgent
+  //     .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/other-panels/${panel_id}`)
+  //     .method("PATCH")
+  //     .json(payload)
+  //     .execute();
+  //   return response.data as any;
+  // }
+
+  // async DeleteOtherTestPanel(
+  //   organization_id: string,
+  //   center_id: string,
+  //   id: string): Promise<any> {
+  //   const response = await apiAgent
+  //     .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/other-panels/${id}`)
+  //     .method("DELETE")
+  //     .execute();
+  //   return response.data as any;
+  // }
+
+  // async ReorderOtherTestPanels(
+  //   organization_id: string,
+  //   center_id: string,
+  //   payload: ReorderPanelsPayload): Promise<any> {
+  //   const response = await apiAgent
+  //     .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/other-panels/order-sequencing`)
+  //     .method("PATCH")
+  //     .json(payload)
+  //     .execute();
+  //   return response.data as any;
+  // }
+
+  // async GetOtherTestPanelById(
+  //   organization_id: string,
+  //   center_id: string,
+  //   panel_id: string
+  // ): Promise<any> {
+  //   const response = await apiAgent
+  //     .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/other-panels/${panel_id}`)
+  //     .method("GET")
+  //     .execute();
+  //   return response.data as any;
+  // }
 
 }
 const apis = new Apis();

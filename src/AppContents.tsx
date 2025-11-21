@@ -1,6 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 
-// 🟩 Public Pages
+// ===================== 🟩 Public Pages =====================
 import OnboardingPage from "./Pages/Onboarding/OnboardingPage";
 import OnboardingForm from "./components/RegisterForm/OnboardingForm";
 import OnboardingOtpForm from "./components/OtpForm/OnboardingOtpForm";
@@ -9,60 +9,75 @@ import SuccessMessage from "./components/SuccessFullMessage/SuccessMessage";
 import LoginForm from "./components/LoginForm/LoginForm";
 import LoginOtpForm from "./components/LoginOtp/LoginOtpForm";
 
-// 🟦 Layouts & Route Guards
+// ===================== 🟦 Layouts & Route Guards =====================
 import PrivateRoute from "./Layouts/PrivateRoute";
 import PublicRoute from "./Layouts/PublicRoute";
 import AppLayout from "./Layouts/AppLayout";
 
-// 🟧 Organization & Center Pages
+// ===================== 🟧 Organization & Center Pages =====================
 import OrganizationList from "./Pages/Organization/OrganizationList";
 import AddOrganization from "./Pages/Organization/AddOrganization";
 import ClinicList from "./Pages/Clinic/ClinicList";
 import AddCenter from "./Pages/Clinic/AddCenter";
 
-// 🟨 Provider Pages
-// @ts-expect-error: allow ProviderList
+// ===================== 🟨 Provider Pages =====================
 import ProviderList from "./Pages/Provider/ProviderList";
 import AddProvider from "./Pages/Provider/AddProvider";
 
-// 🟪 Availability Pages
+// ===================== 🟪 Availability Pages =====================
 import ProviderAvailability from "./Pages/Availability/ProviderAvailability";
 // import AddProviderAvailability from "./Pages/Availability/AddProviderAvailability";
 
-// 🟥 Doctor Pages
+// ===================== 🟥 Doctor Pages =====================
 import DoctorLoginPage from "./Pages/Doctor/DoctorLogin/DoctorLoginPage";
 import DoctorDashboardPage from "./Pages/Doctor/DoctorDashboard/DoctorDashboard";
 import AppointmentsPage from "./Pages/Doctor/Appointments/AppointmentsPage";
 import EprescriptionPage from "./Pages/Doctor/Eprescription/EprescriptionPage";
 
-// ⚪ Settings & Payment Pages
+// ===================== ⚪ Settings, Billing & Others =====================
 import PaymentSettings from "./Pages/PaymentSettings/PaymentSettings";
 import FeeManagement from "./Pages/FeeMangement/FeeManagement";
 import GeneralSettings from "./Pages/GeneralSettings/GeneralSettings";
-// import PatientSchedule from "./Pages/PatientShedule/BookingPage";
 import BookingPage from "./Pages/PatientShedule/BookingPage";
+
 import TestPackage from "./Pages/TestPackages/TestPackage";
 import TestPanels from "./Pages/TestPanels/TestPanels";
 import EditPanelPage from "./Pages/TestPanels/EditPanelPage";
+import TestPanelsDetails from "./Pages/TestPanels/TestPanelsDetails";
+
 import TestCategories from "./Pages/TestCategories/TestCategories";
 import TestDatabase from "./Pages/TestDatabase/TestDatabase";
 import AddTestPage from "./Pages/TestDatabase/AddTestPage";
 import AddMultipleTestPage from "./Pages/TestDatabase/AddMultipleTestPage";
-import AddDocumentTestPage from "./Pages/TestDatabase/AddDocumentTestPage";
-import Units from "./Pages/Units/Units";
 import AddMultipleNestedTestPage from "./Pages/TestDatabase/AddMultipleNestedTestPage";
-import TestPanelsDetails from "./Pages/TestPanels/TestPanelsDetails";
+import AddDocumentTestPage from "./Pages/TestDatabase/AddDocumentTestPage";
+
+import Units from "./Pages/Units/Units";
+
 import DiagnosticBillsPage from "./Pages/DiagnosticBills/DiagnosticBillsPage";
 import AddDiagnosticBillsPage from "./Pages/DiagnosticBills/AddDiagnosticBillsPage";
+
 import InterpretationPage from "./Pages/interpretation/InterpretationPage";
 import QrCodePage from "./Pages/QrCode/QrCodePage";
+
 import AccessManagement from "./Pages/AccessManagement/AccessManagement";
 import Roles from "./Pages/Roles/Roles";
+
+// ===================== 🟫 Radiology Pages =====================
+import TestDatabaseOther from "./Pages/Radiology/OtherTest/TestDatabaseOther";
+import AddRadiologyTestPage from "./Pages/Radiology/OtherTest/AddTestPage";
+import OtherTestPanelList from "./Pages/Radiology/OtherTestPanel/OtherTestPanelList";
+import EditOtherTestPanel from "./Pages/Radiology/OtherTestPanel/EditOtherTestPanel";
+import OtherTestCategory from "./Pages/Radiology/OtherTestCategory/OtherTestCategory";
+import TestDepartment from "./Pages/Radiology/TestDepartment/TestDepartment";
 
 function AppContents() {
   return (
     <Routes>
-      {/* ===================== 🟩 PUBLIC ROUTES ===================== */}
+
+      {/* =========================================================
+                       🟩 PUBLIC ROUTES
+      ========================================================== */}
       <Route
         path="/"
         element={
@@ -79,7 +94,9 @@ function AppContents() {
         <Route path="login-otp" element={<LoginOtpForm />} />
       </Route>
 
-      {/* ===================== 🟦 PRIVATE ROUTES ===================== */}
+      {/* =========================================================
+                       🟦 PRIVATE ROUTES (App Layout)
+      ========================================================== */}
       <Route
         element={
           <PrivateRoute>
@@ -87,64 +104,73 @@ function AppContents() {
           </PrivateRoute>
         }
       >
-        {/* 🟧 Organization & Centers */}
+        {/* ---------------- 🟧 Organization & Centers ---------------- */}
         <Route path="/organizations" element={<OrganizationList />} />
         <Route path="/organization/add" element={<AddOrganization />} />
         <Route path="/centers" element={<ClinicList />} />
         <Route path="/centers/add" element={<AddCenter />} />
 
-        {/* 🟨 Providers */}
+        {/* ---------------- 🟨 Providers ---------------- */}
         <Route path="/providers" element={<ProviderList />} />
         <Route path="/providers/add" element={<AddProvider />} />
 
-        {/* 🟪 Availability */}
+        {/* ---------------- 🟪 Availability ---------------- */}
         <Route path="/availability" element={<ProviderAvailability />} />
-        {/* <Route
-          path="/availability/add/:providerUid"
-          element={<AddProviderAvailability />}
-        /> */}
+        {/* <Route path="/availability/add/:providerUid" element={<AddProviderAvailability />} /> */}
 
-        {/* 🟥 Doctor */}
+        {/* ---------------- 🟥 Doctor (Inside Admin Layout) ---------------- */}
         <Route path="/doctor-dashboard" element={<DoctorDashboardPage />} />
         <Route path="/doctor-appointments" element={<AppointmentsPage />} />
         <Route path="/e-prescription" element={<EprescriptionPage />} />
 
-        {/* ⚪ Settings & Payments */}
+        {/* ---------------- ⚪ Settings, Billing, Tests ---------------- */}
         <Route path="/payments" element={<PaymentSettings />} />
         <Route path="/fee-management" element={<FeeManagement />} />
         <Route path="/general-settings" element={<GeneralSettings />} />
+
         <Route path="/booking" element={<BookingPage />} />
+
+        {/* Test Panels */}
         <Route path="/test-packages" element={<TestPackage />} />
         <Route path="/test-panels" element={<TestPanels />} />
         <Route path="/test-panels/:id" element={<TestPanelsDetails />} />
         <Route path="/test-panels/edit" element={<EditPanelPage />} />
+
+        {/* Test Categories & Database */}
         <Route path="/test-categories" element={<TestCategories />} />
         <Route path="/test-database" element={<TestDatabase />} />
         <Route path="/test-database/add" element={<AddTestPage />} />
+        <Route path="/test-database/add-multiple" element={<AddMultipleTestPage />} />
+        <Route path="/test-database/add-nested" element={<AddMultipleNestedTestPage />} />
+        <Route path="/test-database/add-document" element={<AddDocumentTestPage />} />
+
+        <Route path="/units" element={<Units />} />
+
+        {/* Billing */}
         <Route path="/bills" element={<DiagnosticBillsPage />} />
         <Route path="/bills/add" element={<AddDiagnosticBillsPage />} />
+
         <Route path="/interpretation" element={<InterpretationPage />} />
         <Route path="/qr-code" element={<QrCodePage />} />
+
+        {/* Roles & Access */}
         <Route path="/access-management" element={<AccessManagement />} />
         <Route path="/roles" element={<Roles />} />
-        
-        <Route
-          path="/test-database/add-multiple"
-          element={<AddMultipleTestPage />}
-        />
-        <Route
-          path="/test-database/add-nested"
-          element={<AddMultipleNestedTestPage />}
-        />
-        <Route
-          path="/test-database/add-document"
-          element={<AddDocumentTestPage />}
-        />
-        <Route path="/units" element={<Units />} />
+
+        {/* ---------------- 🟫 Radiology ---------------- */}
+        <Route path="/test-department" element={<TestDepartment />} />
+        <Route path="/radiology/test-database" element={<TestDatabaseOther />} />
+        <Route path="/radiology/test-database/add" element={<AddRadiologyTestPage />} />
+        <Route path="/radiology/other-test-panels" element={<OtherTestPanelList />} />
+        <Route path="/radiology/other-test-panels/edit" element={<EditOtherTestPanel />} />
+        <Route path="/radiology/other-test-categories" element={<OtherTestCategory />} />
       </Route>
 
-      {/* ===================== 🔵 DOCTOR PUBLIC LOGIN ===================== */}
+      {/* =========================================================
+                       🔵 DOCTOR PUBLIC LOGIN
+      ========================================================== */}
       <Route path="/doctor-login" element={<DoctorLoginPage />} />
+
     </Routes>
   );
 }

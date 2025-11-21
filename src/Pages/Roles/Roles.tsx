@@ -6,6 +6,7 @@ import type { CellData } from "./Components/AccessManagementGrid";
 import RolesTable from "./Components/RolesTable";
 import RoleModal from "./Components/RoleModal";
 import DeleteConfirm from "../TestPackages/Components/DeleteConfirm";
+import apis from "../../APis/Api";
 
 const Roles: React.FC = () => {
   // Use mock data for now, real organization/center ids are not required
@@ -76,46 +77,58 @@ const Roles: React.FC = () => {
   const total = filtered.length;
   const rows = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-  const handleSaveRole = async (
-    payload: {
-      name: string;
-      permissions?: string[];
-      status?: string;
-      access?: CellData[];
-    },
-    uid?: string
-  ) => {
+  const handleSaveRole = async (payload: {
+    name: string;
+    permissions?: string[] | string;
+    status?: string;
+    access?: CellData[];
+  }) => {
     // Operate locally with mock data for now
     setSaving(true);
     try {
-      if (uid) {
-        setRoles((prev) =>
-          prev.map((r) => (r.uid === uid ? { ...r, ...payload } : r))
-        );
+      // Call the API to add/update role
+      const apiPayload = {
+        name: payload.name,
+        permissions:
+          typeof payload.permissions === "string"
+            ? payload.permissions
+            : payload.permissions?.join(";"),
+        status: payload.status,
+      };
+      console.log("API Payload:", apiPayload);
+      const response = await apis.AddRole(apiPayload);
+
+      if (response.success) {
         notifications.show({
           title: "Success",
-          message: "Role updated (local)",
-          color: "blue",
+          message: response.message || "Role created successfully",
+          color: "green",
         });
-      } else {
+
+        // Update local state with the new role
         const newRole: Role = {
-          uid: `role_${Date.now()}`,
+          uid: `role_${Date.now()}`, // In real app, this would come from API response
           name: payload.name,
-          permissions: payload.permissions || [],
+          permissions:
+            typeof payload.permissions === "string"
+              ? payload.permissions.split(";")
+              : payload.permissions || [],
           status: payload.status || "active",
           access: payload.access || [],
         };
         setRoles((prev) => [newRole, ...prev]);
+
+        setIsAddModalOpen(false);
+        setRoleToEdit(null);
+      } else {
         notifications.show({
-          title: "Success",
-          message: "Role created (local)",
-          color: "blue",
+          title: "Error",
+          message: response.message || "Failed to create role",
+          color: "red",
         });
       }
-      setIsAddModalOpen(false);
-      setRoleToEdit(null);
     } catch (error) {
-      console.error("Failed to save role locally:", error);
+      console.error("Failed to save role:", error);
       notifications.show({
         title: "Error",
         message: "Failed to save role",

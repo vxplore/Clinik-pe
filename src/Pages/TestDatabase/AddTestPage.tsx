@@ -136,20 +136,19 @@ const AddTestPage: React.FC = () => {
       if (response?.success) {
         notifications.show({
           title: "Success",
-          message: response.message || "Test added successfully",
+          message: response.message,
           color: "blue",
         });
+        setTimeout(() => {
+          navigate("/test-database");
+        }, 1500);
       } else {
         notifications.show({
           title: "Error",
-          message: response?.message || "Failed to add test",
+          message: response?.message,
           color: "red",
         });
       }
-
-      setTimeout(() => {
-        navigate("/test-database");
-      }, 1500);
     } catch (error) {
       console.error("Failed to add test:", error);
       notifications.show({

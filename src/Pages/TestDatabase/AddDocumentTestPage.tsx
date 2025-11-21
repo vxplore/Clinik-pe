@@ -132,14 +132,14 @@ const AddDocumentTestPage: React.FC = () => {
       if (response?.success) {
         notifications.show({
           title: "Success",
-          message: response.message || "Document test added successfully",
+          message: response.message,
           color: "green",
         });
         setTimeout(() => navigate("/test-database"), 1400);
       } else {
         notifications.show({
           title: "Error",
-          message: response?.message || "Failed to add document test",
+          message: response?.message,
           color: "red",
         });
       }

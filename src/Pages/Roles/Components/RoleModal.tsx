@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { Button, TextInput, MultiSelect, Switch } from "@mantine/core";
+import { Button, TextInput, Switch } from "@mantine/core";
 import { IconX } from "@tabler/icons-react";
 import type { Role } from "../../../APis/Types";
 import AccessManagementGrid, { type CellData } from "./AccessManagementGrid";
@@ -8,15 +8,12 @@ import AccessManagementGrid, { type CellData } from "./AccessManagementGrid";
 interface RoleModalProps {
   opened: boolean;
   onClose: () => void;
-  onSave: (
-    payload: {
-      name: string;
-      permissions: string[];
-      status: string;
-      access?: CellData[];
-    },
-    uid?: string
-  ) => void;
+  onSave: (payload: {
+    name: string;
+    permissions: string | string[];
+    status: string;
+    access?: CellData[];
+  }) => void;
   loading?: boolean;
   roleToEdit?: Role | null;
 }
@@ -76,28 +73,49 @@ const RoleModal: React.FC<RoleModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    onSave(
-      {
-        name: name.trim(),
-        permissions,
-        status: active ? "active" : "inactive",
-        access: accessGrid,
-      },
-      roleToEdit?.uid
-    );
+
+    // Build permissions payload with access structure
+    const accessItems = [
+      "Organization",
+      "Center",
+      "Provider",
+      "Appointment",
+      "Fees",
+      "Availability",
+      "Clinic",
+      "Diagnostic",
+    ];
+
+    // Map access grid to permissions format: "item,read,write"
+    const accessPermissions = accessGrid.map((cell, idx) => {
+      const readValue =
+        cell.read === "allow" ? 1 : cell.read === "deny" ? -1 : 0;
+      const writeValue =
+        cell.write === "allow" ? 1 : cell.write === "deny" ? -1 : 0;
+      return `${accessItems[idx]},${readValue},${writeValue}`;
+    });
+
+    const payload = {
+      name: name.trim(),
+      status: active ? "active" : "inactive",
+      permissions: [...permissions, ...accessPermissions].join(";"),
+    };
+
+    console.log("Payload to save:", payload);
+    console.log("Formatted Permissions:", payload.permissions);
+
+    const onSavePayload = {
+      name: name.trim(),
+      permissions: payload.permissions, // string; semicolon separated
+      status: active ? "active" : "inactive",
+      access: accessGrid,
+    };
+
+    console.log("onSave payload:", onSavePayload);
+    onSave(onSavePayload);
   };
 
   if (!opened) return null;
-
-  // Minimal permissions options. These could be fetched from API later.
-  const perms = [
-    { value: "organization.read", label: "Organization - Read" },
-    { value: "organization.write", label: "Organization - Write" },
-    { value: "provider.read", label: "Provider - Read" },
-    { value: "provider.write", label: "Provider - Write" },
-    { value: "appointments.read", label: "Appointments - Read" },
-    { value: "appointments.write", label: "Appointments - Write" },
-  ];
 
   return createPortal(
     <div
@@ -143,8 +161,6 @@ const RoleModal: React.FC<RoleModalProps> = ({
                 />
               </div>
             </div>
-
-            
 
             <div className="mt-6 pt-4 border-t border-gray-200">
               <h4 className="text-sm font-semibold text-gray-700 mb-4">

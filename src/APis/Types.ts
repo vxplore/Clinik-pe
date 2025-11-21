@@ -1447,3 +1447,57 @@ export interface SidebarMenuItem {
   children: SidebarMenuItem[];
 }
 
+export interface CreateRolePermissionResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    role_uid: string;
+  };
+}
+
+
+
+
+export interface QrCodeApiResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    qr_code: QrCode;
+  };
+}
+
+export interface QrCode {
+  qr_image_path: string;
+  qr_image_url: string;
+  booking_url: string | null;
+}
+
+export interface OtherTestPanelRow {
+  id: string;
+  uid: string;
+  order: number;
+  name: string;
+  description: string;
+  department: string;
+  price: number | string;
+  status: "active" | "inactive" | string;
+  data: string;
+  tests: string[];
+  hide_individual?: Record<string, string>;
+}
+
+export interface CreateOtherTestPanelPayload {
+  name: string;
+  description: string;
+  price: number;
+  status: "active" | "inactive" | string;
+  data: string;
+  department: string;
+  tests: Array<{ test_id: string }>;
+}
+
+export interface UpdateOtherTestPanelPayload extends CreateOtherTestPanelPayload {
+  remove_tests?: Array<{ test_id: string }>;
+}
