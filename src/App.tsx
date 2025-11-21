@@ -10,13 +10,12 @@ import { Notifications } from "@mantine/notifications";
 import theme from "./Theme/Theme";
 export const isProduction = import.meta.env.MODE !== "development";
 
-const basename = isProduction ? "/clinicpe/management" : "/";
-
+// const basename = isProduction ? "/clinicpe/management" : "/";
 function App() {
   return (
     <>
       <MantineProvider theme={theme}>
-        <BrowserRouter basename={basename}>
+        <BrowserRouter>
           <Notifications position="top-right" />
           <AppContents />
         </BrowserRouter>
