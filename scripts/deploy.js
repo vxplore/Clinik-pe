@@ -10,8 +10,9 @@ import { fileFromPath } from "formdata-node/file-from-path";
 import { FormDataEncoder } from "form-data-encoder";
 import { Readable } from "stream";
 
-const DEPLOY_URL = "https://devs.v-xplore.com/clinicpe/devops.php";
+const DEPLOY_URL = "https://app.clinikpe.com/deploy.php";
 const DEPLOY_SECRET = "YOUR_DEPLOY_SECRET_HERE";
+const TOKEN = "mysecret";
 
 const distDir = path.resolve("dist");
 const zipPath = path.resolve("dist.zip");
@@ -36,6 +37,7 @@ async function deploy() {
 
   const form = new FormData();
   form.set("file", await fileFromPath(zipPath));
+  form.set("token", TOKEN);
 
   const encoder = new FormDataEncoder(form);
   const body = Readable.from(encoder.encode());
